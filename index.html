@@ -1,12 +1,211 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RJ & Alliance Exports</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RJ & Alliance Exports</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Inter',sans-serif;background:#f8fafc;}</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useRef, useEffect } = React;
+const { createClient } = supabase;
+
+const SUPA_URL = "https://yohwzwhmsqfksnwjtxmy.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHd6d2htc3Fma3Nud2p0eG15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5OTYzNzIsImV4cCI6MjA5NTU3MjM3Mn0.0iDV0TIxJ7dX37IsI6NtVdrkgQq-qQPYFweWztfaIz0";
+const sb = createClient(SUPA_URL, SUPA_KEY);
+
+const ehTere = p => (p||"").toUpperCase().includes("TEREBINTINA");
+function docsIni(produto) {
+  const p = produto||"";
+  const pal = !p.toUpperCase().includes("TAMBOR") && !p.toUpperCase().includes("GRANEL");
+  const base = {invoice:false,packing:false,co:false,ca:false,due:false,pallet:pal};
+  return ehTere(p)?{...base,anexoVII:false,mdgf:false,dca:false}:base;
+}
+const LDOC = {invoice:"Invoice",packing:"Packing List",co:"Cert. Origem",ca:"Cert. Análise",due:"DU-E",pallet:"Cert. Pallets",anexoVII:"Anexo VII",mdgf:"MDGF",dca:"DCA"};
+const TODAY = new Date();
+const dDiff = d => d?Math.ceil((new Date(d+"T12:00:00")-TODAY)/86400000):null;
+const fDate = d => d?new Date(d+"T12:00:00").toLocaleDateString("pt-BR"):"—";
+const fUSD  = v => "$"+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0});
+const semRes = p => !p.carg&&!p.bl&&p.status!=="PAGO";
+const semDoc = p => p.docs&&Object.values(p.docs).some(v=>!v);
+
+const C = {w:"#fff",bg:"#f8fafc",bd:"#e2e8f0",tx:"#0f172a",sub:"#475569",mu:"#94a3b8",bl:"#2563eb",gr:"#16a34a",rd:"#dc2626",am:"#d97706"};
+const SSTATUS = {"PENDENTE":{bg:"#f1f5f9",c:"#475569",b:"#cbd5e1",d:"#94a3b8"},"EM PROCESSAMENTO PELO BANCO":{bg:"#eff6ff",c:"#1d4ed8",b:"#bfdbfe",d:"#3b82f6"},"PAGO":{bg:"#f0fdf4",c:"#15803d",b:"#bbf7d0",d:"#22c55e"},"PAGO PARCIAL":{bg:"#fefce8",c:"#a16207",b:"#fde68a",d:"#eab308"},"EM COBRANÇA":{bg:"#fff7ed",c:"#c2410c",b:"#fed7aa",d:"#f97316"},"ATRASADO":{bg:"#fef2f2",c:"#b91c1c",b:"#fecaca",d:"#ef4444"},"INADIMPLENTE":{bg:"#fdf2f8",c:"#9d174d",b:"#fbcfe8",d:"#ec4899"}};
+const SOPT = ["PENDENTE","EM PROCESSAMENTO PELO BANCO","PAGO","PAGO PARCIAL","EM COBRANÇA","ATRASADO","INADIMPLENTE"];
+
+const SEED = [
+  {empresa:"RJ",proforma:"013-RJ-26",cliente:"GCC",produto:"BREU SC FLAKES PAPEL 25",qtd:52,valor:55900,carg:"2026-02-25",bl:"2026-03-25",prazo:60,termos:"DIAS DO BL",pgm:"2026-05-24",status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"019-RJ-26",cliente:"SOLUCIONES",produto:"BREU BLOCO PAPEL 25",qtd:18,valor:21600,carg:"2026-03-09",bl:"2026-03-20",prazo:90,termos:"DIAS DO BL",pgm:"2026-06-18",status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"021-1-RJ-26",cliente:"SAPTAGIR",produto:"TEREBINTINA",qtd:20,valor:66500,carg:"2026-03-16",bl:"2026-03-27",prazo:45,termos:"DIAS DO BL",pgm:"2026-05-11",status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:"COBRANÇA VIA BANCO"},
+  {empresa:"RJ",proforma:"014-RJ-26",cliente:"GLOBE",produto:"BREU TAMBOR 250",qtd:100,valor:103000,carg:"2026-03-30",bl:"2026-04-01",prazo:60,termos:"DIAS DO BL",pgm:"2026-05-31",status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"028-RJ-26",cliente:"AV POUND",produto:"BREU TAMBOR 250",qtd:23,valor:23000,carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:"TAMBOR DE CABEÇA PRA BAIXO / PENDENTE NOVA RESERVA"},
+  {empresa:"RJ",proforma:"041-RJ-26",cliente:"GCC",produto:"BREU TAMBOR 250 + BREU FLAKE RAFIA 25",qtd:192,valor:307200,carg:null,bl:null,prazo:90,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"",obs_prazo:"",obs:"4 CNTR BREU SACOS + 4 CNTR BREU TAMBOR"},
+  {empresa:"RJ",proforma:"042-RJ-26",cliente:"KALPSUTRA",produto:"TEREBINTINA",qtd:40,valor:171000,carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"030-RJ-26",cliente:"KALPSUTRA",produto:"TEREBINTINA",qtd:20,valor:66800,carg:"2026-03-23",bl:"2026-04-09",prazo:45,termos:"DIAS DO BL",pgm:"2026-05-24",status:"EM PROCESSAMENTO PELO BANCO",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:"COBRANÇA VIA BANCO"},
+  {empresa:"ALLIANCE",proforma:"005-RJ-26",cliente:"PINUS RUS",produto:"D-LIMONENO + BREU TAMBOR",qtd:24.76,valor:78169,carg:"2026-04-27",bl:"2026-05-08",prazo:60,termos:"DIAS DO BL",pgm:"2026-07-07",status:"PAGO",prontidao:null,incoterm:"CIF",destino:"Rússia",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"040-RJ-26",cliente:"GLOBE",produto:"BREU TAMBOR 250",qtd:75,valor:78000,carg:"2026-05-25",bl:"2026-05-30",prazo:60,termos:"DIAS DO BL",pgm:"2026-07-29",status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"",obs_prazo:"",obs:"TAMBORES DEITADOS SEM PALLETS"},
+  {empresa:"RJ",proforma:"039-RJ-26",cliente:"GCC",produto:"BREU TAMBOR 250",qtd:75,valor:105000,carg:"2026-06-05",bl:"2026-06-14",prazo:90,termos:"DIAS DO BL",pgm:"2026-09-12",status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"037-1-RJ-26",cliente:"KALPSUTRA",produto:"TEREBINTINA",qtd:40,valor:162000,carg:"2026-05-20",bl:"2026-06-02",prazo:45,termos:"DIAS DO BL",pgm:"2026-07-17",status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:"COBRANÇA VIA BANCO"},
+  {empresa:"RJ",proforma:"036-RJ-26",cliente:"GCC",produto:"BREU SC FLAKES RAFIA 25",qtd:96,valor:123840,carg:"2026-05-31",bl:"2026-06-03",prazo:90,termos:"DIAS DO BL",pgm:"2026-09-01",status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"033-RJ-26",cliente:"GUANGDONG",produto:"BREU TAMBOR 250",qtd:50,valor:60000,carg:"2026-05-28",bl:"2026-06-01",prazo:60,termos:"DIAS DO BL",pgm:"2026-07-31",status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"China",obs_prazo:"",obs:""},
+  {empresa:"RJ",proforma:"029-RJ-26",cliente:"AV POUND",produto:"TEREBINTINA",qtd:40,valor:124000,carg:"2026-04-20",bl:"2026-04-26",prazo:45,termos:"DIAS DO BL",pgm:"2026-06-10",status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:""},
+  {empresa:"ALLIANCE",proforma:"010-AR-26",cliente:"PINUS RUS",produto:"BREU TAMBOR 250 + BREU FLAKE RAFIA 25",qtd:78,valor:121680,carg:null,bl:null,prazo:45,termos:"PARCELADO",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"Rússia",obs_prazo:"50% ADIANTADO + 50% 45 DIAS DO BL",obs:""},
+  {empresa:"RJ",proforma:"045-RJ-26",cliente:"MANGALAM",produto:"TEREBINTINA",qtd:40,valor:176000,carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:""},
+].map(p=>({...p,docs:docsIni(p.produto)}));
+
+function Badge({status}){const s=SSTATUS[status]||SSTATUS["PENDENTE"];return <span style={{display:"inline-flex",alignItems:"center",gap:4,background:s.bg,color:s.c,border:`1px solid ${s.b}`,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:s.d,flexShrink:0}}/>{status}</span>;}
+
+function Pill({children,color="gray"}){const m={blue:{bg:"#eff6ff",c:"#1d4ed8",b:"#bfdbfe"},red:{bg:"#fef2f2",c:"#b91c1c",b:"#fecaca"},amber:{bg:"#fefce8",c:"#92400e",b:"#fde68a"},green:{bg:"#f0fdf4",c:"#15803d",b:"#bbf7d0"},gray:{bg:"#f1f5f9",c:"#475569",b:"#cbd5e1"}};const s=m[color]||m.gray;return <span style={{background:s.bg,color:s.c,border:`1px solid ${s.b}`,borderRadius:4,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{children}</span>;}
+
+function DB({days}){if(days===null)return <span style={{color:C.mu,fontSize:12}}>—</span>;if(days<0)return <Pill color="red">{Math.abs(days)}d atraso</Pill>;if(days===0)return <Pill color="red">Hoje!</Pill>;if(days<=5)return <Pill color="red">{days}d</Pill>;if(days<=15)return <Pill color="amber">{days}d</Pill>;return <Pill color="green">{days}d</Pill>;}
+
+function KPI({label,value,sub,color="blue",icon}){const clr=color==="red"?C.rd:color==="amber"?C.am:color==="green"?C.gr:C.bl;return <div style={{background:C.w,border:`1px solid ${C.bd}`,borderTop:`3px solid ${clr}`,borderRadius:10,padding:"14px 18px"}}><div style={{fontSize:11,color:C.sub,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:6}}>{icon} {label}</div><div style={{fontSize:22,fontWeight:800,color:clr}}>{value}</div>{sub&&<div style={{fontSize:11,color:C.mu,marginTop:3}}>{sub}</div>}</div>;}
+
+function DocCheck({docs,onChange,compact}){if(!docs)return null;const isTere="anexoVII" in docs;const total=Object.keys(docs).length;const feitos=Object.values(docs).filter(Boolean).length;const pct=total>0?Math.round(feitos/total*100):0;if(compact)return <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{flex:1,height:4,background:"#e2e8f0",borderRadius:4,minWidth:50}}><div style={{height:"100%",width:`${pct}%`,background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444",borderRadius:4}}/></div><span style={{fontSize:11,color:C.sub,fontWeight:600}}>{feitos}/{total}</span></div>;
+const grupos=[{t:"Comerciais",keys:["invoice","packing"]},{t:"Regulatórios",keys:["co","ca","due",...("pallet" in docs?["pallet"]:[])]}, ...(isTere?[{t:"Terebintina",keys:["anexoVII","mdgf","dca"]}]:[])];
+return <div><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><div style={{flex:1,height:6,background:"#f1f5f9",borderRadius:4}}><div style={{height:"100%",width:`${pct}%`,background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444",borderRadius:4}}/></div><span style={{fontSize:12,fontWeight:700,color:C.sub}}>{feitos}/{total} ({pct}%)</span></div>{grupos.map(g=><div key={g.t} style={{marginBottom:10}}><div style={{fontSize:10,fontWeight:700,color:C.mu,textTransform:"uppercase",letterSpacing:.8,marginBottom:5}}>{g.t}</div>{g.keys.filter(k=>k in docs).map(k=><label key={k} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 10px",borderRadius:6,background:docs[k]?"#f0fdf4":"#f8fafc",border:`1px solid ${docs[k]?"#bbf7d0":C.bd}`,marginBottom:4}}><input type="checkbox" checked={docs[k]} onChange={e=>onChange&&onChange(k,e.target.checked)} style={{accentColor:"#22c55e",width:14,height:14}}/><span style={{fontSize:12,fontWeight:600,color:docs[k]?C.gr:C.sub}}>{LDOC[k]}</span>{docs[k]&&<span style={{marginLeft:"auto",fontSize:10,color:C.gr}}>✓</span>}</label>)}</div>)}</div>;}
+
+function Modal({proc,onClose,onSave,loading}){
+  const [f,setF]=useState({...proc});
+  const [st,setSt]=useState("dados");
+  const setV=(k,v)=>setF(p=>({...p,[k]:v}));
+  const setD=(k,v)=>setF(p=>({...p,docs:{...p.docs,[k]:v}}));
+  const inp={width:"100%",boxSizing:"border-box",border:`1px solid ${C.bd}`,borderRadius:7,padding:"8px 11px",fontSize:13,fontFamily:"inherit",color:C.tx,background:C.w,outline:"none"};
+  const lbl={fontSize:11,color:C.sub,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",display:"block",marginBottom:4};
+  return <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(15,23,42,0.4)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+    <div style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:14,width:"100%",maxWidth:580,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.15)"}}>
+      <div style={{padding:"20px 24px 0",borderBottom:`1px solid ${C.bd}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+          <div><div style={{fontSize:11,color:C.bl,fontWeight:700,textTransform:"uppercase",marginBottom:2}}>{f.empresa} · {f.proforma||"Novo"}</div><div style={{fontSize:16,fontWeight:800,color:C.tx}}>{f.cliente||"—"}</div></div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:C.mu}}>×</button>
+        </div>
+        <div style={{display:"flex"}}>{[["dados","Dados"],["docs","✓ Docs"]].map(([id,lb])=><button key={id} onClick={()=>setSt(id)} style={{background:"none",border:"none",borderBottom:`2px solid ${st===id?C.bl:"transparent"}`,color:st===id?C.bl:C.mu,padding:"8px 14px",fontSize:12,fontWeight:st===id?700:500,cursor:"pointer",fontFamily:"inherit"}}>{lb}</button>)}</div>
+      </div>
+      <div style={{padding:"20px 24px"}}>
+        {st==="dados"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {[["cliente","Cliente","text","1/span 2"],["produto","Produto","text","1/span 2"],["destino","País Destino","text"],["incoterm","Incoterm","inc"],["qtd","Qtd","number"],["valor","Valor USD","number"],["prazo","Prazo (dias)","number"],["termos","Termos","ter"],["prontidao","Previsão Prontidão","date"],["carg","Carregamento","date"],["bl","Data BL","date"],["pgm","Prev. Pagamento","date"]].map(([k,lb,type,gc])=><div key={k} style={{gridColumn:gc}}><label style={lbl}>{lb}</label>{type==="inc"?<select value={f[k]||"FOB"} onChange={e=>setV(k,e.target.value)} style={inp}>{["FOB","CIF","CFR","EXW","DAP","DDP"].map(o=><option key={o}>{o}</option>)}</select>:type==="ter"?<select value={f[k]||"DIAS DO BL"} onChange={e=>setV(k,e.target.value)} style={inp}>{["DIAS DO BL","NO BL","100% ANTECIPADO","50% ANTECIPADO","PARCELADO"].map(o=><option key={o}>{o}</option>)}</select>:<input type={type} value={f[k]||""} onChange={e=>setV(k,e.target.value)} style={inp}/>}</div>)}
+          <div style={{gridColumn:"1/span 2"}}><label style={lbl}>Status Pagamento</label><select value={f.status} onChange={e=>setV("status",e.target.value)} style={inp}>{SOPT.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div style={{gridColumn:"1/span 2"}}><label style={lbl}>Observações</label><textarea value={f.obs||""} onChange={e=>setV("obs",e.target.value)} rows={2} style={{...inp,resize:"vertical"}}/></div>
+        </div>}
+        {st==="docs"&&<DocCheck docs={f.docs} onChange={setD}/>}
+      </div>
+      <div style={{padding:"16px 24px",borderTop:`1px solid ${C.bd}`,display:"flex",gap:8,justifyContent:"flex-end"}}>
+        <button onClick={onClose} style={{background:C.bg,color:C.sub,border:`1px solid ${C.bd}`,borderRadius:7,padding:"8px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}}>Cancelar</button>
+        <button onClick={()=>onSave(f)} disabled={loading} style={{background:C.bl,color:"#fff",border:"none",borderRadius:7,padding:"8px 20px",fontWeight:700,fontSize:13,cursor:"pointer"}}>{loading?"Salvando...":"Salvar"}</button>
+      </div>
+    </div>
+  </div>;
+}
+
+function Login(){
+  const [email,setEmail]=useState("");const [senha,setSenha]=useState("");const [erro,setErro]=useState("");const [load,setLoad]=useState(false);
+  const entrar=async()=>{setErro("");setLoad(true);const{error}=await sb.auth.signInWithPassword({email,password:senha});if(error)setErro("E-mail ou senha incorretos.");setLoad(false);};
+  return <div style={{minHeight:"100vh",background:"#f8fafc",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:16,padding:"40px 36px",width:"100%",maxWidth:380,boxShadow:"0 4px 24px rgba(0,0,0,.07)"}}>
+    <div style={{textAlign:"center",marginBottom:28}}><div style={{background:"#2563eb",borderRadius:12,padding:"10px 16px",fontSize:28,display:"inline-block",marginBottom:12}}>🌊</div><div style={{fontSize:20,fontWeight:800,color:"#0f172a"}}>RJ & Alliance Exports</div><div style={{fontSize:13,color:"#94a3b8",marginTop:4}}>Controle de Exportação Marítima</div></div>
+    <div style={{marginBottom:14}}><label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>E-MAIL</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com" onKeyDown={e=>e.key==="Enter"&&entrar()} style={{width:"100%",boxSizing:"border-box",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 12px",fontSize:14,fontFamily:"inherit",outline:"none"}}/></div>
+    <div style={{marginBottom:20}}><label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>SENHA</label><input type="password" value={senha} onChange={e=>setSenha(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==="Enter"&&entrar()} style={{width:"100%",boxSizing:"border-box",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 12px",fontSize:14,fontFamily:"inherit",outline:"none"}}/></div>
+    {erro&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:7,padding:"9px 12px",fontSize:13,color:"#dc2626",marginBottom:14}}>{erro}</div>}
+    <button onClick={entrar} disabled={load} style={{width:"100%",background:"#2563eb",color:"#fff",border:"none",borderRadius:8,padding:11,fontWeight:700,fontSize:14,cursor:"pointer"}}>{load?"Entrando...":"Entrar"}</button>
+  </div></div>;
+}
+
+function App(){
+  const [session,setSession]=useState(null);
+  const [authLoad,setAuthLoad]=useState(true);
+  const [data,setData]=useState([]);
+  const [dbLoad,setDbLoad]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [tab,setTab]=useState("dashboard");
+  const [modal,setModal]=useState(null);
+  const [busca,setBusca]=useState("");
+  const [fCliente,setFCliente]=useState("Todos");
+  const [fStatus,setFStatus]=useState("Todos");
+
+  useEffect(()=>{sb.auth.getSession().then(({data:{session}})=>{setSession(session);setAuthLoad(false);});const{data:{subscription}}=sb.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe();},[]);
+  useEffect(()=>{if(session)loadData();},[session]);
+
+  const loadData=async()=>{setDbLoad(true);const{data:rows,error}=await sb.from("processos").select("*").order("created_at");if(!error&&rows){if(rows.length===0)await seedData();else setData(rows);}setDbLoad(false);};
+  const seedData=async()=>{const ins=SEED.map(p=>({...p,docs:docsIni(p.produto)}));const{data:r}=await sb.from("processos").insert(ins).select();if(r)setData(r);};
+  const saveP=async(proc)=>{setSaving(true);if(proc.id){const{id,created_at,...rest}=proc;const{data:u}=await sb.from("processos").update({...rest,updated_at:new Date().toISOString()}).eq("id",id).select().single();if(u)setData(d=>d.map(p=>p.id===id?u:p));}else{const{id:_,...rest}=proc;const{data:i}=await sb.from("processos").insert({...rest,docs:docsIni(proc.produto)}).select().single();if(i)setData(d=>[...d,i]);}setSaving(false);setModal(null);};
+
+  const sRes=data.filter(semRes);
+  const sDocs=data.filter(p=>p.status!=="PAGO"&&semDoc(p));
+  const venc=data.filter(p=>p.pgm&&p.status!=="PAGO"&&dDiff(p.pgm)<0);
+  const mes=data.filter(p=>{if(!p.pgm||p.status==="PAGO")return false;const d=new Date(p.pgm+"T12:00:00");return d.getMonth()===TODAY.getMonth()&&d.getFullYear()===TODAY.getFullYear();});
+  const tPend=data.filter(p=>p.status!=="PAGO").reduce((a,p)=>a+(p.valor||0),0);
+  const tVenc=venc.reduce((a,p)=>a+(p.valor||0),0);
+  const tMes=mes.reduce((a,p)=>a+(p.valor||0),0);
+  const tGeral=data.reduce((a,p)=>a+(p.valor||0),0);
+  const clientes=useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.cliente))).sort()],[data]);
+  const lista=useMemo(()=>data.filter(p=>{const q=busca.toLowerCase();return(fCliente==="Todos"||p.cliente===fCliente)&&(fStatus==="Todos"||p.status===fStatus)&&(!busca||p.proforma?.toLowerCase().includes(q)||p.cliente?.toLowerCase().includes(q)||p.produto?.toLowerCase().includes(q));}),[data,busca,fCliente,fStatus]);
+
+  const emptyP={empresa:"RJ",proforma:"",cliente:"",produto:"",qtd:0,valor:0,carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:"",docs:{}};
+  const TABS=[{id:"dashboard",label:"Painel Geral"},{id:"booking",label:"Booking Pendente",alert:sRes.length},{id:"docs",label:"Docs Pendentes",alert:sDocs.length},{id:"recebimentos",label:"Recebimentos"},{id:"todos",label:"Todos"}];
+
+  if(authLoad)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:"#94a3b8"}}>Carregando...</div>;
+  if(!session)return <Login/>;
+
+  const TH=({ch})=><th style={{padding:"9px 12px",fontSize:11,fontWeight:700,color:C.sub,textTransform:"uppercase",letterSpacing:.5,textAlign:"left",borderBottom:`1px solid ${C.bd}`,background:"#f8fafc",whiteSpace:"nowrap"}}>{ch}</th>;
+  const TD=({children,style})=><td style={{padding:"10px 12px",borderBottom:"1px solid #f1f5f9",verticalAlign:"middle",fontSize:13,...style}}>{children}</td>;
+
+  const Tabela=({rows,cols={}})=>{if(!rows.length)return <div style={{textAlign:"center",padding:40,color:C.mu}}>Nenhum processo</div>;return <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><TH ch="Proforma"/><TH ch="Cliente"/><TH ch="Produto"/>{cols.prontidao&&<TH ch="Prontidão"/>}<TH ch="USD"/>{cols.carg&&<TH ch="Carregamento"/>}{cols.pgm&&<TH ch="Pgto Prev."/>}{cols.dias&&<TH ch="Vence"/>}{cols.docs&&<TH ch="Docs"/>}{cols.status&&<TH ch="Status"/>}<TH ch=""/></tr></thead><tbody>{rows.map((p,i)=><tr key={p.id||p.proforma} style={{background:i%2===0?C.w:"#fafafa",cursor:"pointer"}} onClick={()=>setModal(p)}><TD><span style={{color:C.bl,fontWeight:700,fontSize:12}}>{p.proforma}</span></TD><TD style={{fontWeight:600}}>{p.cliente}</TD><TD style={{color:C.sub,maxWidth:150}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{p.produto}</span></TD>{cols.prontidao&&<TD>{p.prontidao?fDate(p.prontidao):<Pill color="amber">Indefinida</Pill>}</TD>}<TD style={{fontWeight:700,color:C.gr}}>{fUSD(p.valor)}</TD>{cols.carg&&<TD>{p.carg?fDate(p.carg):<Pill color="red">Sem reserva</Pill>}</TD>}{cols.pgm&&<TD style={{color:C.sub}}>{fDate(p.pgm)}</TD>}{cols.dias&&<TD><DB days={dDiff(p.pgm)}/></TD>}{cols.docs&&<TD style={{minWidth:100}}><DocCheck docs={p.docs||{}} compact/></TD>}{cols.status&&<TD><Badge status={p.status}/></TD>}<TD><button onClick={e=>{e.stopPropagation();setModal(p);}} style={{background:"#eff6ff",color:C.bl,border:"1px solid #bfdbfe",borderRadius:5,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Abrir</button></TD></tr>)}</tbody></table></div>;};
+
+  return <div style={{minHeight:"100vh",background:C.bg}}>
+    <div style={{background:C.w,borderBottom:`1px solid ${C.bd}`,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:54,flexWrap:"wrap",gap:8}}>
+      <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{background:C.bl,borderRadius:8,padding:"6px 10px",fontSize:16}}>🌊</div><div><div style={{fontWeight:800,fontSize:14,color:C.tx}}>RJ & Alliance Exports</div><div style={{fontSize:11,color:C.mu}}>{session.user.email}</div></div></div>
+      <div style={{display:"flex",gap:8}}><button onClick={()=>setModal(emptyP)} style={{background:C.bl,color:"#fff",border:"none",borderRadius:7,padding:"7px 14px",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Novo</button><button onClick={()=>sb.auth.signOut()} style={{background:"#f1f5f9",color:C.sub,border:`1px solid ${C.bd}`,borderRadius:7,padding:"7px 12px",fontWeight:600,fontSize:12,cursor:"pointer"}}>Sair</button></div>
+    </div>
+    <div style={{background:C.w,borderBottom:`1px solid ${C.bd}`,padding:"0 20px",display:"flex",overflowX:"auto"}}>
+      {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${tab===t.id?C.bl:"transparent"}`,color:tab===t.id?C.bl:C.sub,padding:"11px 12px",fontSize:12,fontWeight:tab===t.id?700:500,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:5,whiteSpace:"nowrap"}}>{t.label}{t.alert>0&&<span style={{background:"#fef2f2",color:C.rd,border:"1px solid #fecaca",borderRadius:20,padding:"0 5px",fontSize:10,fontWeight:700}}>{t.alert}</span>}</button>)}
+    </div>
+    {dbLoad&&<div style={{textAlign:"center",padding:40,color:C.mu}}>Carregando dados...</div>}
+    {!dbLoad&&<div style={{padding:"20px",maxWidth:1400,margin:"0 auto"}}>
+      {tab==="dashboard"&&<div>
+        <div style={{marginBottom:18}}><h2 style={{fontSize:17,fontWeight:800,color:C.tx}}>Painel Geral</h2><p style={{fontSize:12,color:C.sub,marginTop:4}}>Visão consolidada de todos os processos</p></div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12,marginBottom:20}}>
+          <KPI icon="📦" label="Total" value={data.length} sub={`${data.filter(p=>p.status==="PAGO").length} pagos`}/>
+          <KPI icon="💵" label="Volume Total" value={fUSD(tGeral)}/>
+          <KPI icon="⏳" label="A Receber" value={fUSD(tPend)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`} color="amber"/>
+          <KPI icon="📅" label="Este Mês" value={fUSD(tMes)} sub={`${mes.length} vencimentos`} color="green"/>
+          <KPI icon="🚨" label="Vencidos" value={fUSD(tVenc)} sub={`${venc.length} processos`} color={tVenc>0?"red":"green"}/>
+          <KPI icon="🚢" label="Sem Booking" value={sRes.length} color={sRes.length>0?"red":"green"}/>
+          <KPI icon="📄" label="Docs Pendentes" value={sDocs.length} color={sDocs.length>0?"amber":"green"}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+          {[{title:"🚢 Booking Pendente",items:sRes,tabKey:"booking",val:p=>fUSD(p.valor)},{title:"💰 Recebimentos do Mês",items:mes,tabKey:"recebimentos",val:p=><DB days={dDiff(p.pgm)}/>},{title:"📄 Docs Pendentes",items:sDocs,tabKey:"docs",val:p=>{const miss=Object.entries(p.docs||{}).filter(([,v])=>!v).map(([k])=>LDOC[k]);return <span style={{fontSize:11,color:C.orange||"#ea580c"}}>{miss.slice(0,2).join(" · ")}</span>;}},{title:"🔴 Pagamentos Vencidos",items:venc,tabKey:"recebimentos",val:p=>fUSD(p.valor),ac:tVenc>0?"red":"green"}].map(card=><div key={card.title} style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:12,padding:"16px 18px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><div style={{fontWeight:700,fontSize:13}}>{card.title}</div><button onClick={()=>setTab(card.tabKey)} style={{background:"none",border:"none",color:C.bl,fontSize:12,cursor:"pointer",fontWeight:600}}>Ver →</button></div>
+            {card.items.slice(0,4).map(p=><div key={p.id} onClick={()=>setModal(p)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f1f5f9",cursor:"pointer"}}><div><span style={{fontSize:12,fontWeight:700,color:C.bl}}>{p.proforma}</span><span style={{fontSize:12,color:C.sub,marginLeft:8}}>{p.cliente}</span></div><div style={{fontSize:12}}>{card.val(p)}</div></div>)}
+            {card.items.length===0&&<div style={{textAlign:"center",color:C.mu,fontSize:12,padding:12}}>✅ Tudo em dia!</div>}
+          </div>)}
+        </div>
+        <div style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:12,padding:"16px 18px"}}>
+          <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📊 Volume por Cliente</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10}}>
+            {Object.entries(data.reduce((a,p)=>{a[p.cliente]=(a[p.cliente]||0)+(p.valor||0);return a},{})).sort((a,b)=>b[1]-a[1]).map(([cli,val])=><div key={cli} style={{background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:12,fontWeight:700}}>{cli}</span><span style={{fontSize:12,fontWeight:700,color:C.gr}}>{fUSD(val)}</span></div><div style={{height:4,background:C.bd,borderRadius:4}}><div style={{height:"100%",width:`${val/tGeral*100}%`,background:C.bl,borderRadius:4}}/></div></div>)}
+          </div>
+        </div>
+      </div>}
+      {tab==="booking"&&<div><h2 style={{fontSize:17,fontWeight:800,marginBottom:12}}>Processos Pendentes de Booking</h2>{sRes.length>0&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:9,padding:"11px 16px",marginBottom:14,fontSize:13,color:C.rd,fontWeight:600}}>⚠️ {sRes.length} processo{sRes.length>1?"s":""} sem reserva · {fUSD(sRes.reduce((a,p)=>a+(p.valor||0),0))} em aberto</div>}<Tabela rows={sRes} cols={{prontidao:true,carg:true,docs:true}}/></div>}
+      {tab==="docs"&&<div><h2 style={{fontSize:17,fontWeight:800,marginBottom:14}}>Documentos Pendentes</h2>{sDocs.map(p=>{const miss=Object.entries(p.docs||{}).filter(([,v])=>!v).map(([k])=>LDOC[k]);const done=Object.entries(p.docs||{}).filter(([,v])=>v).map(([k])=>LDOC[k]);return <div key={p.id} onClick={()=>setModal(p)} style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 18px",marginBottom:10,cursor:"pointer"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:6}}><div><span style={{color:C.bl,fontWeight:700}}>{p.proforma}</span><span style={{color:C.sub,marginLeft:10}}>{p.cliente}</span></div><div style={{display:"flex",gap:8}}><span style={{fontWeight:700,color:C.gr}}>{fUSD(p.valor)}</span><Badge status={p.status}/></div></div><div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:8}}>{miss.length>0&&<div><div style={{fontSize:10,fontWeight:700,color:C.rd,textTransform:"uppercase",marginBottom:4}}>⚠ Pendente</div><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{miss.map(m=><Pill key={m} color="red">{m}</Pill>)}</div></div>}{done.length>0&&<div><div style={{fontSize:10,fontWeight:700,color:C.gr,textTransform:"uppercase",marginBottom:4}}>✓ Emitido</div><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{done.map(d=><Pill key={d} color="green">{d}</Pill>)}</div></div>}</div><DocCheck docs={p.docs||{}} compact/></div>;})}
+      {sDocs.length===0&&<div style={{textAlign:"center",padding:60,color:C.mu}}>✅ Todos os documentos em dia!</div>}</div>}
+      {tab==="recebimentos"&&<div><h2 style={{fontSize:17,fontWeight:800,marginBottom:14}}>Controle de Recebimentos</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:12,marginBottom:20}}><KPI icon="🔴" label="Vencidos" value={fUSD(tVenc)} sub={`${venc.length} processos`} color={tVenc>0?"red":"green"}/><KPI icon="📅" label="Este mês" value={fUSD(tMes)} sub={`${mes.length} processos`} color="amber"/><KPI icon="⏳" label="Total a receber" value={fUSD(tPend)}/></div>
+      {venc.length>0&&<div style={{marginBottom:20}}><div style={{fontWeight:700,color:C.rd,fontSize:14,marginBottom:10}}>🔴 Vencidos</div><Tabela rows={venc} cols={{pgm:true,dias:true,status:true}}/></div>}
+      <div style={{marginBottom:20}}><div style={{fontWeight:700,fontSize:14,marginBottom:10}}>📅 A receber em {TODAY.toLocaleString("pt-BR",{month:"long",year:"numeric"})}</div><Tabela rows={mes.sort((a,b)=>new Date(a.pgm)-new Date(b.pgm))} cols={{pgm:true,dias:true,status:true}}/></div>
+      <div><div style={{fontWeight:700,color:C.sub,fontSize:14,marginBottom:10}}>📋 Todos os Pendentes</div><Tabela rows={data.filter(p=>p.status!=="PAGO").sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} cols={{pgm:true,dias:true,status:true}}/></div></div>}
+      {tab==="todos"&&<div><h2 style={{fontSize:17,fontWeight:800,marginBottom:14}}>Todos os Processos</h2><div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap"}}><input placeholder="🔍 Proforma, cliente ou produto..." value={busca} onChange={e=>setBusca(e.target.value)} style={{border:`1px solid ${C.bd}`,borderRadius:7,padding:"7px 12px",fontSize:13,flex:1,minWidth:180,fontFamily:"inherit",outline:"none"}}/><select value={fCliente} onChange={e=>setFCliente(e.target.value)} style={{border:`1px solid ${C.bd}`,borderRadius:7,padding:"7px 12px",fontSize:13,fontFamily:"inherit",background:C.w}}>{clientes.map(c=><option key={c}>{c}</option>)}</select><select value={fStatus} onChange={e=>setFStatus(e.target.value)} style={{border:`1px solid ${C.bd}`,borderRadius:7,padding:"7px 12px",fontSize:13,fontFamily:"inherit",background:C.w}}><option value="Todos">Todos</option>{SOPT.map(s=><option key={s}>{s}</option>)}</select></div><Tabela rows={lista} cols={{prontidao:true,carg:true,pgm:true,docs:true,status:true}}/><div style={{marginTop:8,fontSize:11,color:C.mu,textAlign:"right"}}>{lista.length} de {data.length} · {fUSD(lista.reduce((a,p)=>a+(p.valor||0),0))}</div></div>}
+    </div>}
+    {modal&&<Modal proc={modal} onClose={()=>setModal(null)} onSave={saveP} loading={saving}/>}
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
 </html>
