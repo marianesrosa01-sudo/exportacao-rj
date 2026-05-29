@@ -45,7 +45,7 @@ const SEED = [
   {empresa:"RJ",proforma:"019-RJ-26",cliente:"SOLUCIONES",produto:"BREU BLOCO PAPEL 25",qtd:18,valor:21600,carg:"2026-03-09",bl:"2026-03-20",prazo:90,termos:"DIAS DO BL",pgm:"2026-06-18",status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:""},
   {empresa:"RJ",proforma:"021-1-RJ-26",cliente:"SAPTAGIR",produto:"TEREBINTINA",qtd:20,valor:66500,carg:"2026-03-16",bl:"2026-03-27",prazo:45,termos:"DIAS DO BL",pgm:"2026-05-11",status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:"COBRANÇA VIA BANCO"},
   {empresa:"RJ",proforma:"014-RJ-26",cliente:"GLOBE",produto:"BREU TAMBOR 250",qtd:100,valor:103000,carg:"2026-03-30",bl:"2026-04-01",prazo:60,termos:"DIAS DO BL",pgm:"2026-05-31",status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"",obs_prazo:"",obs:""},
-  {empresa:"RJ",proforma:"028-RJ-26",cliente:"AV POUND",produto:"BREU TAMBOR 250",qtd:23,valor:23000,carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:"TAMBOR DE CABEÇA PRA BAIXO / PENDENTE NOVA RESERVA"},
+  {empresa:"RJ",proforma:"028-RJ-26",cliente:"AV POUND",produto:"BREU TAMBOR 250",qtd:23,valor:23000,carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:"TAMBOR DE CABEÇA PRA BAIXO"},
   {empresa:"RJ",proforma:"041-RJ-26",cliente:"GCC",produto:"BREU TAMBOR 250 + BREU FLAKE RAFIA 25",qtd:192,valor:307200,carg:null,bl:null,prazo:90,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"CIF",destino:"",obs_prazo:"",obs:"4 CNTR BREU SACOS + 4 CNTR BREU TAMBOR"},
   {empresa:"RJ",proforma:"042-RJ-26",cliente:"KALPSUTRA",produto:"TEREBINTINA",qtd:40,valor:171000,carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:""},
   {empresa:"RJ",proforma:"030-RJ-26",cliente:"KALPSUTRA",produto:"TEREBINTINA",qtd:20,valor:66800,carg:"2026-03-23",bl:"2026-04-09",prazo:45,termos:"DIAS DO BL",pgm:"2026-05-24",status:"EM PROCESSAMENTO PELO BANCO",prontidao:null,incoterm:"FOB",destino:"Índia",obs_prazo:"",obs:"COBRANÇA VIA BANCO"},
@@ -61,16 +61,86 @@ const SEED = [
 ].map(p=>({...p,docs:docsIni(p.produto)}));
 
 function Badge({status}){const s=SSTATUS[status]||SSTATUS["PENDENTE"];return <span style={{display:"inline-flex",alignItems:"center",gap:4,background:s.bg,color:s.c,border:`1px solid ${s.b}`,borderRadius:4,padding:"2px 8px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}><span style={{width:6,height:6,borderRadius:"50%",background:s.d,flexShrink:0}}/>{status}</span>;}
-
 function Pill({children,color="gray"}){const m={blue:{bg:"#eff6ff",c:"#1d4ed8",b:"#bfdbfe"},red:{bg:"#fef2f2",c:"#b91c1c",b:"#fecaca"},amber:{bg:"#fefce8",c:"#92400e",b:"#fde68a"},green:{bg:"#f0fdf4",c:"#15803d",b:"#bbf7d0"},gray:{bg:"#f1f5f9",c:"#475569",b:"#cbd5e1"}};const s=m[color]||m.gray;return <span style={{background:s.bg,color:s.c,border:`1px solid ${s.b}`,borderRadius:4,padding:"1px 7px",fontSize:11,fontWeight:600,whiteSpace:"nowrap"}}>{children}</span>;}
-
 function DB({days}){if(days===null)return <span style={{color:C.mu,fontSize:12}}>—</span>;if(days<0)return <Pill color="red">{Math.abs(days)}d atraso</Pill>;if(days===0)return <Pill color="red">Hoje!</Pill>;if(days<=5)return <Pill color="red">{days}d</Pill>;if(days<=15)return <Pill color="amber">{days}d</Pill>;return <Pill color="green">{days}d</Pill>;}
-
 function KPI({label,value,sub,color="blue",icon}){const clr=color==="red"?C.rd:color==="amber"?C.am:color==="green"?C.gr:C.bl;return <div style={{background:C.w,border:`1px solid ${C.bd}`,borderTop:`3px solid ${clr}`,borderRadius:10,padding:"14px 18px"}}><div style={{fontSize:11,color:C.sub,fontWeight:600,textTransform:"uppercase",letterSpacing:.6,marginBottom:6}}>{icon} {label}</div><div style={{fontSize:22,fontWeight:800,color:clr}}>{value}</div>{sub&&<div style={{fontSize:11,color:C.mu,marginTop:3}}>{sub}</div>}</div>;}
 
-function DocCheck({docs,onChange,compact}){if(!docs)return null;const isTere="anexoVII" in docs;const total=Object.keys(docs).length;const feitos=Object.values(docs).filter(Boolean).length;const pct=total>0?Math.round(feitos/total*100):0;if(compact)return <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{flex:1,height:4,background:"#e2e8f0",borderRadius:4,minWidth:50}}><div style={{height:"100%",width:`${pct}%`,background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444",borderRadius:4}}/></div><span style={{fontSize:11,color:C.sub,fontWeight:600}}>{feitos}/{total}</span></div>;
-const grupos=[{t:"Comerciais",keys:["invoice","packing"]},{t:"Regulatórios",keys:["co","ca","due",...("pallet" in docs?["pallet"]:[])]}, ...(isTere?[{t:"Terebintina",keys:["anexoVII","mdgf","dca"]}]:[])];
-return <div><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><div style={{flex:1,height:6,background:"#f1f5f9",borderRadius:4}}><div style={{height:"100%",width:`${pct}%`,background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444",borderRadius:4}}/></div><span style={{fontSize:12,fontWeight:700,color:C.sub}}>{feitos}/{total} ({pct}%)</span></div>{grupos.map(g=><div key={g.t} style={{marginBottom:10}}><div style={{fontSize:10,fontWeight:700,color:C.mu,textTransform:"uppercase",letterSpacing:.8,marginBottom:5}}>{g.t}</div>{g.keys.filter(k=>k in docs).map(k=><label key={k} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 10px",borderRadius:6,background:docs[k]?"#f0fdf4":"#f8fafc",border:`1px solid ${docs[k]?"#bbf7d0":C.bd}`,marginBottom:4}}><input type="checkbox" checked={docs[k]} onChange={e=>onChange&&onChange(k,e.target.checked)} style={{accentColor:"#22c55e",width:14,height:14}}/><span style={{fontSize:12,fontWeight:600,color:docs[k]?C.gr:C.sub}}>{LDOC[k]}</span>{docs[k]&&<span style={{marginLeft:"auto",fontSize:10,color:C.gr}}>✓</span>}</label>)}</div>)}</div>;}
+function DocCheck({docs,onChange,compact}){
+  if(!docs)return null;
+  const isTere="anexoVII" in docs;
+  const total=Object.keys(docs).length;
+  const feitos=Object.values(docs).filter(Boolean).length;
+  const pct=total>0?Math.round(feitos/total*100):0;
+  if(compact)return <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{flex:1,height:4,background:"#e2e8f0",borderRadius:4,minWidth:50}}><div style={{height:"100%",width:`${pct}%`,background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444",borderRadius:4}}/></div><span style={{fontSize:11,color:C.sub,fontWeight:600}}>{feitos}/{total}</span></div>;
+  const grupos=[{t:"Comerciais",keys:["invoice","packing"]},{t:"Regulatórios",keys:["co","ca","due",...("pallet" in docs?["pallet"]:[])]}, ...(isTere?[{t:"Terebintina",keys:["anexoVII","mdgf","dca"]}]:[])];
+  return <div><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><div style={{flex:1,height:6,background:"#f1f5f9",borderRadius:4}}><div style={{height:"100%",width:`${pct}%`,background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444",borderRadius:4}}/></div><span style={{fontSize:12,fontWeight:700,color:C.sub}}>{feitos}/{total} ({pct}%)</span></div>{grupos.map(g=><div key={g.t} style={{marginBottom:10}}><div style={{fontSize:10,fontWeight:700,color:C.mu,textTransform:"uppercase",letterSpacing:.8,marginBottom:5}}>{g.t}</div>{g.keys.filter(k=>k in docs).map(k=><label key={k} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 10px",borderRadius:6,background:docs[k]?"#f0fdf4":"#f8fafc",border:`1px solid ${docs[k]?"#bbf7d0":C.bd}`,marginBottom:4}}><input type="checkbox" checked={docs[k]} onChange={e=>onChange&&onChange(k,e.target.checked)} style={{accentColor:"#22c55e",width:14,height:14}}/><span style={{fontSize:12,fontWeight:600,color:docs[k]?C.gr:C.sub}}>{LDOC[k]}</span>{docs[k]&&<span style={{marginLeft:"auto",fontSize:10,color:C.gr}}>✓</span>}</label>)}</div>)}</div>;
+}
+
+function Arquivos({processoId}){
+  const [arqs,setArqs]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [uploading,setUploading]=useState(false);
+  const fileRef=useRef();
+
+  useEffect(()=>{if(processoId)load();},[processoId]);
+
+  const load=async()=>{
+    setLoading(true);
+    const{data}=await sb.from("arquivos").select("*").eq("processo_id",processoId).order("created_at");
+    if(data)setArqs(data);
+    setLoading(false);
+  };
+
+  const upload=async(e)=>{
+    const files=Array.from(e.target.files);
+    setUploading(true);
+    for(const file of files){
+      const path=`${processoId}/${Date.now()}_${file.name}`;
+      const{error}=await sb.storage.from("arquivos").upload(path,file);
+      if(!error){
+        const{data:urlData}=sb.storage.from("arquivos").getPublicUrl(path);
+        await sb.from("arquivos").insert({processo_id:processoId,nome:file.name,tamanho:file.size,tipo:file.type,url:urlData.publicUrl});
+      }
+    }
+    await load();
+    setUploading(false);
+    e.target.value="";
+  };
+
+  const remover=async(arq)=>{
+    if(!window.confirm(`Remover ${arq.nome}?`))return;
+    await sb.from("arquivos").delete().eq("id",arq.id);
+    setArqs(a=>a.filter(x=>x.id!==arq.id));
+  };
+
+  const icon=tipo=>tipo?.startsWith("image/")?"🖼":tipo==="application/pdf"?"📕":tipo?.includes("excel")||tipo?.includes("spreadsheet")?"📗":tipo?.includes("word")?"📘":"📎";
+
+  if(!processoId)return <div style={{background:"#fefce8",border:"1px solid #fde68a",borderRadius:8,padding:"12px 16px",fontSize:12,color:"#92400e"}}>💡 Salve o processo primeiro para anexar arquivos.</div>;
+
+  return <div>
+    <div onClick={()=>fileRef.current.click()} style={{border:`2px dashed ${C.bd}`,borderRadius:10,padding:"24px",textAlign:"center",cursor:"pointer",marginBottom:14,background:"#f8fafc"}}
+      onMouseEnter={e=>e.currentTarget.style.borderColor=C.bl}
+      onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
+      <div style={{fontSize:28,marginBottom:6}}>📎</div>
+      <div style={{color:C.sub,fontSize:13,fontWeight:600}}>{uploading?"Enviando...":"Clique para anexar arquivos"}</div>
+      <div style={{color:C.mu,fontSize:11,marginTop:3}}>PDF, imagens, Excel, Word — até 50MB cada</div>
+    </div>
+    <input ref={fileRef} type="file" multiple style={{display:"none"}} onChange={upload}/>
+    {loading&&<div style={{textAlign:"center",color:C.mu,fontSize:12,padding:12}}>Carregando...</div>}
+    {!loading&&arqs.length===0&&<div style={{textAlign:"center",color:C.mu,fontSize:12,padding:12}}>Nenhum arquivo anexado</div>}
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {arqs.map(arq=><div key={arq.id} style={{display:"flex",alignItems:"center",gap:10,border:`1px solid ${C.bd}`,borderRadius:8,padding:"9px 13px",background:"#f8fafc"}}>
+        <span style={{fontSize:20}}>{icon(arq.tipo)}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:12,fontWeight:600,color:C.tx,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{arq.nome}</div>
+          <div style={{fontSize:11,color:C.mu}}>{arq.tamanho?(arq.tamanho/1024).toFixed(1)+" KB":""} · {new Date(arq.created_at).toLocaleDateString("pt-BR")}</div>
+        </div>
+        <a href={arq.url} target="_blank" rel="noreferrer" style={{background:"#eff6ff",color:C.bl,border:"1px solid #bfdbfe",borderRadius:5,padding:"4px 9px",fontSize:11,fontWeight:600,textDecoration:"none"}}>⬇</a>
+        <button onClick={()=>remover(arq)} style={{background:"#fef2f2",color:C.rd,border:"1px solid #fecaca",borderRadius:5,padding:"4px 9px",fontSize:11,cursor:"pointer"}}>🗑</button>
+      </div>)}
+    </div>
+  </div>;
+}
 
 function Modal({proc,onClose,onSave,loading}){
   const [f,setF]=useState({...proc});
@@ -79,22 +149,25 @@ function Modal({proc,onClose,onSave,loading}){
   const setD=(k,v)=>setF(p=>({...p,docs:{...p.docs,[k]:v}}));
   const inp={width:"100%",boxSizing:"border-box",border:`1px solid ${C.bd}`,borderRadius:7,padding:"8px 11px",fontSize:13,fontFamily:"inherit",color:C.tx,background:C.w,outline:"none"};
   const lbl={fontSize:11,color:C.sub,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",display:"block",marginBottom:4};
+  const TABS=[["dados","Dados"],["docs","✓ Docs"],["arquivos","📎 Arquivos"]];
   return <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(15,23,42,0.4)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
     <div style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:14,width:"100%",maxWidth:580,maxHeight:"92vh",overflowY:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.15)"}}>
       <div style={{padding:"20px 24px 0",borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
-          <div><div style={{fontSize:11,color:C.bl,fontWeight:700,textTransform:"uppercase",marginBottom:2}}>{f.empresa} · {f.proforma||"Novo"}</div><div style={{fontSize:16,fontWeight:800,color:C.tx}}>{f.cliente||"—"}</div></div>
+          <div><div style={{fontSize:11,color:C.bl,fontWeight:700,textTransform:"uppercase",marginBottom:2}}>{f.empresa} · {f.proforma||"Novo"}</div><div style={{fontSize:16,fontWeight:800,color:C.tx}}>{f.cliente||"—"}</div><div style={{fontSize:12,color:C.sub}}>{f.produto}</div></div>
           <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:C.mu}}>×</button>
         </div>
-        <div style={{display:"flex"}}>{[["dados","Dados"],["docs","✓ Docs"]].map(([id,lb])=><button key={id} onClick={()=>setSt(id)} style={{background:"none",border:"none",borderBottom:`2px solid ${st===id?C.bl:"transparent"}`,color:st===id?C.bl:C.mu,padding:"8px 14px",fontSize:12,fontWeight:st===id?700:500,cursor:"pointer",fontFamily:"inherit"}}>{lb}</button>)}</div>
+        <div style={{display:"flex"}}>{TABS.map(([id,lb])=><button key={id} onClick={()=>setSt(id)} style={{background:"none",border:"none",borderBottom:`2px solid ${st===id?C.bl:"transparent"}`,color:st===id?C.bl:C.mu,padding:"8px 14px",fontSize:12,fontWeight:st===id?700:500,cursor:"pointer",fontFamily:"inherit"}}>{lb}</button>)}</div>
       </div>
       <div style={{padding:"20px 24px"}}>
         {st==="dados"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           {[["cliente","Cliente","text","1/span 2"],["produto","Produto","text","1/span 2"],["destino","País Destino","text"],["incoterm","Incoterm","inc"],["qtd","Qtd","number"],["valor","Valor USD","number"],["prazo","Prazo (dias)","number"],["termos","Termos","ter"],["prontidao","Previsão Prontidão","date"],["carg","Carregamento","date"],["bl","Data BL","date"],["pgm","Prev. Pagamento","date"]].map(([k,lb,type,gc])=><div key={k} style={{gridColumn:gc}}><label style={lbl}>{lb}</label>{type==="inc"?<select value={f[k]||"FOB"} onChange={e=>setV(k,e.target.value)} style={inp}>{["FOB","CIF","CFR","EXW","DAP","DDP"].map(o=><option key={o}>{o}</option>)}</select>:type==="ter"?<select value={f[k]||"DIAS DO BL"} onChange={e=>setV(k,e.target.value)} style={inp}>{["DIAS DO BL","NO BL","100% ANTECIPADO","50% ANTECIPADO","PARCELADO"].map(o=><option key={o}>{o}</option>)}</select>:<input type={type} value={f[k]||""} onChange={e=>setV(k,e.target.value)} style={inp}/>}</div>)}
           <div style={{gridColumn:"1/span 2"}}><label style={lbl}>Status Pagamento</label><select value={f.status} onChange={e=>setV("status",e.target.value)} style={inp}>{SOPT.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div style={{gridColumn:"1/span 2"}}><label style={lbl}>Observações</label><textarea value={f.obs||""} onChange={e=>setV("obs",e.target.value)} rows={2} style={{...inp,resize:"vertical"}}/></div>
+          <div style={{gridColumn:"1/span 2"}}><label style={lbl}>Obs. Prazos/Pagamentos</label><textarea value={f.obs_prazo||""} onChange={e=>setV("obs_prazo",e.target.value)} rows={2} style={{...inp,resize:"vertical"}}/></div>
+          <div style={{gridColumn:"1/span 2"}}><label style={lbl}>Obs. Gerais</label><textarea value={f.obs||""} onChange={e=>setV("obs",e.target.value)} rows={2} style={{...inp,resize:"vertical"}}/></div>
         </div>}
         {st==="docs"&&<DocCheck docs={f.docs} onChange={setD}/>}
+        {st==="arquivos"&&<Arquivos processoId={f.id}/>}
       </div>
       <div style={{padding:"16px 24px",borderTop:`1px solid ${C.bd}`,display:"flex",gap:8,justifyContent:"flex-end"}}>
         <button onClick={onClose} style={{background:C.bg,color:C.sub,border:`1px solid ${C.bd}`,borderRadius:7,padding:"8px 18px",fontWeight:600,fontSize:13,cursor:"pointer"}}>Cancelar</button>
@@ -154,7 +227,6 @@ function App(){
 
   const TH=({ch})=><th style={{padding:"9px 12px",fontSize:11,fontWeight:700,color:C.sub,textTransform:"uppercase",letterSpacing:.5,textAlign:"left",borderBottom:`1px solid ${C.bd}`,background:"#f8fafc",whiteSpace:"nowrap"}}>{ch}</th>;
   const TD=({children,style})=><td style={{padding:"10px 12px",borderBottom:"1px solid #f1f5f9",verticalAlign:"middle",fontSize:13,...style}}>{children}</td>;
-
   const Tabela=({rows,cols={}})=>{if(!rows.length)return <div style={{textAlign:"center",padding:40,color:C.mu}}>Nenhum processo</div>;return <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr><TH ch="Proforma"/><TH ch="Cliente"/><TH ch="Produto"/>{cols.prontidao&&<TH ch="Prontidão"/>}<TH ch="USD"/>{cols.carg&&<TH ch="Carregamento"/>}{cols.pgm&&<TH ch="Pgto Prev."/>}{cols.dias&&<TH ch="Vence"/>}{cols.docs&&<TH ch="Docs"/>}{cols.status&&<TH ch="Status"/>}<TH ch=""/></tr></thead><tbody>{rows.map((p,i)=><tr key={p.id||p.proforma} style={{background:i%2===0?C.w:"#fafafa",cursor:"pointer"}} onClick={()=>setModal(p)}><TD><span style={{color:C.bl,fontWeight:700,fontSize:12}}>{p.proforma}</span></TD><TD style={{fontWeight:600}}>{p.cliente}</TD><TD style={{color:C.sub,maxWidth:150}}><span style={{display:"block",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150}}>{p.produto}</span></TD>{cols.prontidao&&<TD>{p.prontidao?fDate(p.prontidao):<Pill color="amber">Indefinida</Pill>}</TD>}<TD style={{fontWeight:700,color:C.gr}}>{fUSD(p.valor)}</TD>{cols.carg&&<TD>{p.carg?fDate(p.carg):<Pill color="red">Sem reserva</Pill>}</TD>}{cols.pgm&&<TD style={{color:C.sub}}>{fDate(p.pgm)}</TD>}{cols.dias&&<TD><DB days={dDiff(p.pgm)}/></TD>}{cols.docs&&<TD style={{minWidth:100}}><DocCheck docs={p.docs||{}} compact/></TD>}{cols.status&&<TD><Badge status={p.status}/></TD>}<TD><button onClick={e=>{e.stopPropagation();setModal(p);}} style={{background:"#eff6ff",color:C.bl,border:"1px solid #bfdbfe",borderRadius:5,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>Abrir</button></TD></tr>)}</tbody></table></div>;};
 
   return <div style={{minHeight:"100vh",background:C.bg}}>
@@ -179,7 +251,7 @@ function App(){
           <KPI icon="📄" label="Docs Pendentes" value={sDocs.length} color={sDocs.length>0?"amber":"green"}/>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-          {[{title:"🚢 Booking Pendente",items:sRes,tabKey:"booking",val:p=>fUSD(p.valor)},{title:"💰 Recebimentos do Mês",items:mes,tabKey:"recebimentos",val:p=><DB days={dDiff(p.pgm)}/>},{title:"📄 Docs Pendentes",items:sDocs,tabKey:"docs",val:p=>{const miss=Object.entries(p.docs||{}).filter(([,v])=>!v).map(([k])=>LDOC[k]);return <span style={{fontSize:11,color:C.orange||"#ea580c"}}>{miss.slice(0,2).join(" · ")}</span>;}},{title:"🔴 Pagamentos Vencidos",items:venc,tabKey:"recebimentos",val:p=>fUSD(p.valor),ac:tVenc>0?"red":"green"}].map(card=><div key={card.title} style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:12,padding:"16px 18px"}}>
+          {[{title:"🚢 Booking Pendente",items:sRes,tabKey:"booking",val:p=>fUSD(p.valor)},{title:"💰 Recebimentos do Mês",items:mes,tabKey:"recebimentos",val:p=><DB days={dDiff(p.pgm)}/>},{title:"📄 Docs Pendentes",items:sDocs,tabKey:"docs",val:p=>{const miss=Object.entries(p.docs||{}).filter(([,v])=>!v).map(([k])=>LDOC[k]);return <span style={{fontSize:11,color:"#ea580c"}}>{miss.slice(0,2).join(" · ")}</span>;}},{title:"🔴 Pagamentos Vencidos",items:venc,tabKey:"recebimentos",val:p=>fUSD(p.valor)}].map(card=><div key={card.title} style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:12,padding:"16px 18px"}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><div style={{fontWeight:700,fontSize:13}}>{card.title}</div><button onClick={()=>setTab(card.tabKey)} style={{background:"none",border:"none",color:C.bl,fontSize:12,cursor:"pointer",fontWeight:600}}>Ver →</button></div>
             {card.items.slice(0,4).map(p=><div key={p.id} onClick={()=>setModal(p)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #f1f5f9",cursor:"pointer"}}><div><span style={{fontSize:12,fontWeight:700,color:C.bl}}>{p.proforma}</span><span style={{fontSize:12,color:C.sub,marginLeft:8}}>{p.cliente}</span></div><div style={{fontSize:12}}>{card.val(p)}</div></div>)}
             {card.items.length===0&&<div style={{textAlign:"center",color:C.mu,fontSize:12,padding:12}}>✅ Tudo em dia!</div>}
@@ -188,7 +260,7 @@ function App(){
         <div style={{background:C.w,border:`1px solid ${C.bd}`,borderRadius:12,padding:"16px 18px"}}>
           <div style={{fontWeight:700,fontSize:13,marginBottom:12}}>📊 Volume por Cliente</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:10}}>
-            {Object.entries(data.reduce((a,p)=>{a[p.cliente]=(a[p.cliente]||0)+(p.valor||0);return a},{})).sort((a,b)=>b[1]-a[1]).map(([cli,val])=><div key={cli} style={{background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:12,fontWeight:700}}>{cli}</span><span style={{fontSize:12,fontWeight:700,color:C.gr}}>{fUSD(val)}</span></div><div style={{height:4,background:C.bd,borderRadius:4}}><div style={{height:"100%",width:`${val/tGeral*100}%`,background:C.bl,borderRadius:4}}/></div></div>)}
+            {Object.entries(data.reduce((a,p)=>{a[p.cliente]=(a[p.cliente]||0)+(p.valor||0);return a},{})).sort((a,b)=>b[1]-a[1]).map(([cli,val])=><div key={cli} style={{background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:12,fontWeight:700}}>{cli}</span><span style={{fontSize:12,fontWeight:700,color:C.gr}}>{fUSD(val)}</span></div><div style={{height:4,background:C.bd,borderRadius:4}}><div style={{height:"100%",width:`${tGeral>0?val/tGeral*100:0}%`,background:C.bl,borderRadius:4}}/></div></div>)}
           </div>
         </div>
       </div>}
