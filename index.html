@@ -327,7 +327,7 @@ function App(){
   const [saving,setSaving]=useState(false);const [tab,setTab]=useState("dashboard");
   const [modal,setModal]=useState(null);const [dashTab,setDashTab]=useState("geral");
   const [busca,setBusca]=useState("");const [fCli,setFCli]=useState("Todos");
-  const [fSt,setFSt]=useState("Todos");const [fMkt,setFMkt]=useState("Todos");
+  const [fSt,setFSt]=useState("Todos");const [fMkt,setFMkt]=useState("Todos");const [fProd,setFProd]=useState("Todos");const [fCargDe,setFCargDe]=useState("");const [fCargAte,setFCargAte]=useState("");const [showFilters,setShowFilters]=useState(false);
 
   useEffect(()=>{sb.auth.getSession().then(({data:{session}})=>{setSession(session);setAuthLoad(false);});const{data:{subscription}}=sb.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe();},[]);
   useEffect(()=>{if(session)loadData();},[session]);
@@ -350,8 +350,8 @@ function App(){
   const tVencBRL=venc.filter(p=>p.moeda==="BRL").reduce((a,p)=>a+(p.valor||0),0);
   const tGeral=data.reduce((a,p)=>a+(p.valor||0),0);
 
-  const clientes=useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.cliente))).sort()],[data]);
-  const lista=useMemo(()=>data.filter(p=>{const q=busca.toLowerCase();return(fCli==="Todos"||p.cliente===fCli)&&(fSt==="Todos"||p.status===fSt)&&(fMkt==="Todos"||p.mercado===fMkt)&&(!busca||p.proforma?.toLowerCase().includes(q)||p.cliente?.toLowerCase().includes(q)||p.produto?.toLowerCase().includes(q));}),[data,busca,fCli,fSt,fMkt]);
+  const clientes=useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.cliente))).sort()],[data]);const produtos=useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.produto))).sort()],[data]);
+  const lista=useMemo(()=>data.filter(p=>{const q=busca.toLowerCase();const cargOk=(!fCargDe||p.carg>=fCargDe)&&(!fCargAte||p.carg<=fCargAte);return(fCli==="Todos"||p.cliente===fCli)&&(fSt==="Todos"||p.status===fSt)&&(fMkt==="Todos"||p.mercado===fMkt)&&(fProd==="Todos"||p.produto===fProd)&&cargOk&&(!busca||p.proforma?.toLowerCase().includes(q)||p.cliente?.toLowerCase().includes(q)||p.produto?.toLowerCase().includes(q));}),[data,busca,fCli,fSt,fMkt,fProd,fCargDe,fCargAte]);
 
   const emptyP={empresa:"RJ",proforma:"",cliente:"",produto:"",qtd:0,valor:0,moeda:"USD",mercado:"ME",carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:"",docs:{},notas_fiscais:[]};
   const NAV=[{id:"dashboard",icon:"🏠",label:"Inicio"},{id:"booking",icon:"🚢",label:"Booking ME",alert:sRes.length},{id:"docs",icon:"📄",label:"Docs ME",alert:sDocs.length},{id:"recebimentos",icon:"💰",label:"Recebimentos"},{id:"mi",icon:"🏭",label:"Mercado Interno"},{id:"todos",icon:"📋",label:"Todos"}];
@@ -474,14 +474,45 @@ function App(){
 
       {tab==="todos"&&<div>
         <div style={{marginBottom:16}}><h2 style={{fontSize:18,fontWeight:800}}>📋 Todos os Processos</h2></div>
-        <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
-          <input placeholder="Buscar proforma, cliente ou produto..." value={busca} onChange={e=>setBusca(e.target.value)} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 14px",fontSize:13,flex:1,minWidth:180,fontFamily:"inherit",outline:"none",background:"#fff"}}/>
-          <select value={fMkt} onChange={e=>setFMkt(e.target.value)} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",fontSize:13,fontFamily:"inherit",background:"#fff"}}><option value="Todos">Todos os mercados</option><option value="ME">ME - Exportacao</option><option value="MI">MI - Interno</option></select>
-          <select value={fCli} onChange={e=>setFCli(e.target.value)} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",fontSize:13,fontFamily:"inherit",background:"#fff"}}>{clientes.map(c=><option key={c}>{c}</option>)}</select>
-          <select value={fSt} onChange={e=>setFSt(e.target.value)} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",fontSize:13,fontFamily:"inherit",background:"#fff"}}><option value="Todos">Todos os status</option>{SOPT.map(s=><option key={s}>{s}</option>)}</select>
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",marginBottom:16}}>
+          <div style={{display:"flex",gap:10,marginBottom:10,flexWrap:"wrap"}}>
+            <input placeholder="🔍 Buscar proforma, cliente ou produto..." value={busca} onChange={e=>setBusca(e.target.value)} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 12px",fontSize:13,flex:1,minWidth:180,fontFamily:"inherit",outline:"none"}}/>
+            <button onClick={()=>setShowFilters(s=>!s)} style={{background:showFilters?"#2563eb":"#f1f5f9",color:showFilters?"#fff":"#475569",border:"1px solid "+(showFilters?"#2563eb":"#e2e8f0"),borderRadius:8,padding:"8px 14px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+              Filtros {(fMkt!=="Todos"||fCli!=="Todos"||fSt!=="Todos"||fProd!=="Todos"||fCargDe||fCargAte)?"●":""}
+            </button>
+            <button onClick={()=>{setFMkt("Todos");setFCli("Todos");setFSt("Todos");setFProd("Todos");setFCargDe("");setFCargAte("");setBusca("");}} style={{background:"#f1f5f9",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:8,padding:"8px 12px",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Limpar</button>
+          </div>
+          {showFilters&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:10,paddingTop:10,borderTop:"1px solid #f1f5f9"}}>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:4}}>Mercado</label>
+              <select value={fMkt} onChange={e=>setFMkt(e.target.value)} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#fff"}}>
+                <option value="Todos">Todos</option><option value="ME">ME - Exportacao</option><option value="MI">MI - Interno</option>
+              </select>
+            </div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:4}}>Cliente</label>
+              <select value={fCli} onChange={e=>setFCli(e.target.value)} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#fff"}}>
+                {clientes.map(c=><option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:4}}>Produto</label>
+              <select value={fProd} onChange={e=>setFProd(e.target.value)} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#fff"}}>
+                {produtos.map(p=><option key={p}>{p}</option>)}
+              </select>
+            </div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:4}}>Status</label>
+              <select value={fSt} onChange={e=>setFSt(e.target.value)} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#fff"}}>
+                <option value="Todos">Todos</option>{SOPT.map(s=><option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:4}}>Carregamento De</label>
+              <input type="date" value={fCargDe} onChange={e=>setFCargDe(e.target.value)} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+            </div>
+            <div><label style={{fontSize:10,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:.6,display:"block",marginBottom:4}}>Carregamento Ate</label>
+              <input type="date" value={fCargAte} onChange={e=>setFCargAte(e.target.value)} style={{width:"100%",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+            </div>
+          </div>}
         </div>
         <Tabela rows={lista} cols={{mercado:true,prontidao:true,carg:true,pgm:true,docs:true,nf:true,status:true}} onEdit={setModal}/>
-        <div style={{marginTop:10,fontSize:11,color:"#94a3b8",textAlign:"right"}}>{lista.length} de {data.length} processos</div>
+        <div style={{marginTop:10,fontSize:11,color:"#94a3b8",textAlign:"right"}}>{lista.length} de {data.length} processos · {lista.filter(p=>p.status!=="PAGO").length} pendentes</div>
       </div>}
 
     </div>}
