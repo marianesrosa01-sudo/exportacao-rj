@@ -327,7 +327,7 @@ function App(){
   const [saving,setSaving]=useState(false);const [tab,setTab]=useState("dashboard");
   const [modal,setModal]=useState(null);const [dashTab,setDashTab]=useState("geral");
   const [busca,setBusca]=useState("");const [fCli,setFCli]=useState("Todos");
-  const [fSt,setFSt]=useState("Todos");const [fMkt,setFMkt]=useState("Todos");const [fProd,setFProd]=useState("Todos");const [fCargDe,setFCargDe]=useState("");const [fCargAte,setFCargAte]=useState("");const [showFilters,setShowFilters]=useState(false);
+  const [fSt,setFSt]=useState("Todos");const [fMkt,setFMkt]=useState("Todos");const [fProd,setFProd]=useState("Todos");const [fCargDe,setFCargDe]=useState("");const [fCargAte,setFCargAte]=useState("");const [showFilters,setShowFilters]=useState(false);const [fMesRec,setFMesRec]=useState("todos");const [fMesMI,setFMesMI]=useState("todos");
 
   useEffect(()=>{sb.auth.getSession().then(({data:{session}})=>{setSession(session);setAuthLoad(false);});const{data:{subscription}}=sb.auth.onAuthStateChange((_,s)=>setSession(s));return()=>subscription.unsubscribe();},[]);
   useEffect(()=>{if(session)loadData();},[session]);
@@ -351,6 +351,42 @@ function App(){
   const tGeral=data.reduce((a,p)=>a+(p.valor||0),0);
 
   const clientes=useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.cliente))).sort()],[data]);const produtos=useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.produto))).sort()],[data]);
+  const mesesDisponiveis=useMemo(()=>{
+    const set=new Set();
+    data.filter(p=>p.pgm&&p.status!=="PAGO"&&p.moeda!=="BRL").forEach(p=>{
+      const d=new Date(p.pgm+"T12:00:00");
+      set.add(d.getFullYear()+"-"+(d.getMonth()+1).toString().padStart(2,"0"));
+    });
+    return Array.from(set).sort().map(v=>{
+      const [y,m]=v.split("-");
+      const label=new Date(parseInt(y),parseInt(m)-1,1).toLocaleString("pt-BR",{month:"long",year:"numeric"});
+      return {valor:v,label:label.charAt(0).toUpperCase()+label.slice(1)};
+    });
+  },[data]);
+  const mesesDisponiveisMI=useMemo(()=>{
+    const set=new Set();
+    data.filter(p=>p.pgm&&p.status!=="PAGO"&&p.moeda==="BRL").forEach(p=>{
+      const d=new Date(p.pgm+"T12:00:00");
+      set.add(d.getFullYear()+"-"+(d.getMonth()+1).toString().padStart(2,"0"));
+    });
+    return Array.from(set).sort().map(v=>{
+      const [y,m]=v.split("-");
+      const label=new Date(parseInt(y),parseInt(m)-1,1).toLocaleString("pt-BR",{month:"long",year:"numeric"});
+      return {valor:v,label:label.charAt(0).toUpperCase()+label.slice(1)};
+    });
+  },[data]);
+  const recMeFiltrado=useMemo(()=>{
+    const pendentes=meData.filter(p=>p.status!=="PAGO"&&p.pgm);
+    if(fMesRec==="todos") return pendentes;
+    const [y,m]=fMesRec.split("-");
+    return pendentes.filter(p=>{const d=new Date(p.pgm+"T12:00:00");return d.getFullYear()===parseInt(y)&&d.getMonth()===parseInt(m)-1;});
+  },[meData,fMesRec]);
+  const recMIFiltrado=useMemo(()=>{
+    const pendentes=miData.filter(p=>p.status!=="PAGO"&&p.pgm);
+    if(fMesMI==="todos") return pendentes;
+    const [y,m]=fMesMI.split("-");
+    return pendentes.filter(p=>{const d=new Date(p.pgm+"T12:00:00");return d.getFullYear()===parseInt(y)&&d.getMonth()===parseInt(m)-1;});
+  },[miData,fMesMI]);
   const lista=useMemo(()=>data.filter(p=>{const q=busca.toLowerCase();const cargOk=(!fCargDe||p.carg>=fCargDe)&&(!fCargAte||p.carg<=fCargAte);return(fCli==="Todos"||p.cliente===fCli)&&(fSt==="Todos"||p.status===fSt)&&(fMkt==="Todos"||p.mercado===fMkt)&&(fProd==="Todos"||p.produto===fProd)&&cargOk&&(!busca||p.proforma?.toLowerCase().includes(q)||p.cliente?.toLowerCase().includes(q)||p.produto?.toLowerCase().includes(q));}),[data,busca,fCli,fSt,fMkt,fProd,fCargDe,fCargAte]);
 
   const emptyP={empresa:"RJ",proforma:"",cliente:"",produto:"",qtd:0,valor:0,moeda:"USD",mercado:"ME",carg:null,bl:null,prazo:45,termos:"DIAS DO BL",pgm:null,status:"PENDENTE",prontidao:null,incoterm:"FOB",destino:"",obs_prazo:"",obs:"",docs:{},notas_fiscais:[]};
@@ -449,27 +485,57 @@ function App(){
       </div>}
 
       {tab==="recebimentos"&&<div>
-        <div style={{marginBottom:20}}><h2 style={{fontSize:18,fontWeight:800}}>💰 Recebimentos — Mercado Externo</h2></div>
+        <div style={{marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:10}}>
+          <div><h2 style={{fontSize:18,fontWeight:800}}>💰 Recebimentos — Mercado Externo</h2></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <label style={{fontSize:11,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:.6}}>Filtrar mes:</label>
+            <select value={fMesRec} onChange={e=>setFMesRec(e.target.value)} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 12px",fontSize:13,fontFamily:"inherit",background:"#fff",color:"#0f172a"}}>
+              <option value="todos">Todos os meses</option>
+              {mesesDisponiveis.map(m=><option key={m.valor} value={m.valor}>{m.label}</option>)}
+            </select>
+            {fMesRec!=="todos"&&<button onClick={()=>setFMesRec("todos")} style={{background:"#f1f5f9",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,cursor:"pointer"}}>x</button>}
+          </div>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:24}}>
-          <KPI icon="🇺🇸" label="A Receber USD" value={"USD "+tUSD.toLocaleString("pt-BR")} color="blue"/>
-          <KPI icon="🇪🇺" label="A Receber EUR" value={"EUR "+tEUR.toLocaleString("pt-BR")} color="blue"/>
+          <KPI icon="🇺🇸" label="A Receber USD" value={"USD "+recMeFiltrado.filter(p=>(p.moeda||"USD")!=="BRL").reduce((a,p)=>a+(p.valor||0),0).toLocaleString("pt-BR")} sub={recMeFiltrado.filter(p=>p.moeda!=="BRL").length+" processos"} color="blue"/>
+          <KPI icon="🇪🇺" label="A Receber EUR" value={"EUR "+recMeFiltrado.filter(p=>p.moeda==="EUR").reduce((a,p)=>a+(p.valor||0),0).toLocaleString("pt-BR")} color="blue"/>
           <KPI icon="🔴" label="Vencidos" value={"USD "+tVencUSD.toLocaleString("pt-BR")} sub={venc.filter(p=>p.moeda!=="BRL").length+" processos"} color={tVencUSD>0?"red":"green"}/>
         </div>
-        {venc.filter(p=>p.moeda!=="BRL").length>0&&<div style={{marginBottom:24}}><div style={{fontWeight:700,color:"#dc2626",fontSize:14,marginBottom:10}}>🔴 Vencidos ME</div><Tabela rows={venc.filter(p=>p.moeda!=="BRL")} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/></div>}
-        <div style={{marginBottom:24}}><div style={{fontWeight:700,fontSize:14,marginBottom:10}}>📅 A receber em {TODAY.toLocaleString("pt-BR",{month:"long",year:"numeric"})}</div><Tabela rows={mes.filter(p=>p.moeda!=="BRL").sort((a,b)=>new Date(a.pgm)-new Date(b.pgm))} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/></div>
-        <div><div style={{fontWeight:700,color:"#475569",fontSize:14,marginBottom:10}}>📋 Todos Pendentes ME</div><Tabela rows={meData.filter(p=>p.status!=="PAGO").sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/></div>
+        {venc.filter(p=>p.moeda!=="BRL").length>0&&fMesRec==="todos"&&<div style={{marginBottom:24}}><div style={{fontWeight:700,color:"#dc2626",fontSize:14,marginBottom:10}}>🔴 Vencidos ME</div><Tabela rows={venc.filter(p=>p.moeda!=="BRL")} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/></div>}
+        <div style={{marginBottom:24}}>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>
+            📅 {fMesRec==="todos"?"Todos os pendentes por vencimento":mesesDisponiveis.find(m=>m.valor===fMesRec)?.label||""}
+            <span style={{fontWeight:400,color:"#94a3b8",fontSize:12,marginLeft:8}}>{recMeFiltrado.filter(p=>p.moeda!=="BRL").length} processo{recMeFiltrado.filter(p=>p.moeda!=="BRL").length!==1?"s":""}</span>
+          </div>
+          <Tabela rows={recMeFiltrado.filter(p=>p.moeda!=="BRL").sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/>
+        </div>
       </div>}
 
       {tab==="mi"&&<div>
-        <div style={{marginBottom:20}}><h2 style={{fontSize:18,fontWeight:800}}>🏭 Mercado Interno</h2><p style={{fontSize:13,color:"#94a3b8",marginTop:4}}>{miData.length} processos · R$ {tBRL.toLocaleString("pt-BR",{minimumFractionDigits:0})} a receber</p></div>
+        <div style={{marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:10}}>
+          <div><h2 style={{fontSize:18,fontWeight:800}}>🏭 Mercado Interno</h2><p style={{fontSize:13,color:"#94a3b8",marginTop:4}}>{miData.length} processos · R$ {tBRL.toLocaleString("pt-BR",{minimumFractionDigits:0})} a receber</p></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <label style={{fontSize:11,fontWeight:700,color:"#475569",textTransform:"uppercase",letterSpacing:.6}}>Filtrar mes:</label>
+            <select value={fMesMI} onChange={e=>setFMesMI(e.target.value)} style={{border:"1px solid #e2e8f0",borderRadius:8,padding:"7px 12px",fontSize:13,fontFamily:"inherit",background:"#fff",color:"#0f172a"}}>
+              <option value="todos">Todos os meses</option>
+              {mesesDisponiveisMI.map(m=><option key={m.valor} value={m.valor}>{m.label}</option>)}
+            </select>
+            {fMesMI!=="todos"&&<button onClick={()=>setFMesMI("todos")} style={{background:"#f1f5f9",color:"#94a3b8",border:"1px solid #e2e8f0",borderRadius:7,padding:"7px 10px",fontSize:12,cursor:"pointer"}}>x</button>}
+          </div>
+        </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12,marginBottom:20}}>
-          <KPI icon="🇧🇷" label="A Receber BRL" value={"R$ "+tBRL.toLocaleString("pt-BR",{minimumFractionDigits:0})} color="purple"/>
+          <KPI icon="🇧🇷" label="A Receber BRL" value={"R$ "+recMIFiltrado.reduce((a,p)=>a+(p.valor||0),0).toLocaleString("pt-BR",{minimumFractionDigits:0})} sub={recMIFiltrado.length+" processos"} color="purple"/>
           <KPI icon="🔴" label="Vencidos MI" value={"R$ "+tVencBRL.toLocaleString("pt-BR",{minimumFractionDigits:0})} sub={venc.filter(p=>p.moeda==="BRL").length+" processos"} color={tVencBRL>0?"red":"green"}/>
           <KPI icon="📅" label="Vence este Mes" value={"R$ "+mes.filter(p=>p.moeda==="BRL").reduce((a,p)=>a+(p.valor||0),0).toLocaleString("pt-BR",{minimumFractionDigits:0})} sub={mes.filter(p=>p.moeda==="BRL").length+" processos"} color="amber"/>
         </div>
-        {venc.filter(p=>p.moeda==="BRL").length>0&&<div style={{marginBottom:20}}><div style={{fontWeight:700,color:"#dc2626",fontSize:14,marginBottom:10}}>🔴 Vencidos MI</div><Tabela rows={venc.filter(p=>p.moeda==="BRL")} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/></div>}
-        <div style={{marginBottom:20}}><div style={{fontWeight:700,fontSize:14,marginBottom:10}}>📅 A receber em {TODAY.toLocaleString("pt-BR",{month:"long",year:"numeric"})}</div><Tabela rows={mes.filter(p=>p.moeda==="BRL").sort((a,b)=>new Date(a.pgm)-new Date(b.pgm))} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/></div>
-        <div><div style={{fontWeight:700,color:"#475569",fontSize:14,marginBottom:10}}>📋 Todos MI</div><Tabela rows={miData.sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} cols={{pgm:true,dias:true,nf:true,status:true}} onEdit={setModal}/></div>
+        {venc.filter(p=>p.moeda==="BRL").length>0&&fMesMI==="todos"&&<div style={{marginBottom:20}}><div style={{fontWeight:700,color:"#dc2626",fontSize:14,marginBottom:10}}>🔴 Vencidos MI</div><Tabela rows={venc.filter(p=>p.moeda==="BRL")} cols={{pgm:true,dias:true,status:true}} onEdit={setModal}/></div>}
+        <div style={{marginBottom:20}}>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>
+            📅 {fMesMI==="todos"?"Todos os pendentes":mesesDisponiveisMI.find(m=>m.valor===fMesMI)?.label||""}
+            <span style={{fontWeight:400,color:"#94a3b8",fontSize:12,marginLeft:8}}>{recMIFiltrado.length} processo{recMIFiltrado.length!==1?"s":""} · R$ {recMIFiltrado.reduce((a,p)=>a+(p.valor||0),0).toLocaleString("pt-BR",{minimumFractionDigits:0})}</span>
+          </div>
+          <Tabela rows={recMIFiltrado.sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} cols={{pgm:true,dias:true,nf:true,status:true}} onEdit={setModal}/>
+        </div>
       </div>}
 
       {tab==="todos"&&<div>
