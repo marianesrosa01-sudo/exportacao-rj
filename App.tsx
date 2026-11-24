@@ -19,6 +19,10 @@ const TODAY = new Date();
 const daysDiff = (d) => { if(!d) return null; return Math.ceil((new Date(d+"T12:00:00")-TODAY)/86400000); };
 const fmtDate  = (d) => { if(!d) return "—"; return new Date(d+"T12:00:00").toLocaleDateString("pt-BR"); };
 const fmtUSD   = (v) => "$"+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0});
+const moedaFmt=(v,m="USD")=>`${m} ${Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const saldo=p=>p.status==="PAGO"?0:Math.max(0,Number(p.valor||0)-Number(p.valor_recebido||0));
+const resumo=(rows,pend=false)=>Object.entries(rows.reduce((a,p)=>{const m=p.moeda||"USD";a[m]=(a[m]||0)+(pend?saldo(p):Number(p.valor||0));return a},{})).map(([m,v])=>moedaFmt(v,m)).join(" · ")||moedaFmt(0);
+const chave=p=>String(p.empresa||"").trim().toUpperCase()+"|"+String(p.proforma||"").trim().toUpperCase().replace(/^0+(?=\d)/,"");
 const semReserva = (p) => !p.carg && !p.bl && p.status !== "PAGO";
 const docsIncompletos = (p) => p.docs && Object.values(p.docs).some(v=>!v);
 
@@ -185,7 +189,7 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
         <div style={{ padding:"20px 24px" }}>
           {subTab==="dados" && (
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-              {[["cliente","Cliente","text","1/span 2"],["produto","Produto","text","1/span 2"],["destino","País Destino","text"],["incoterm","Incoterm","incoterm"],["qtd","Quantidade","number"],["valor","Valor USD","number"],["prazo","Prazo Pgto (dias)","number"],["termos","Termos Pgto","termos"],["prontidao","Previsão Prontidão","date"],["carg","Data Carregamento","date"],["bl","Data BL","date"],["pgm","Previsão Pagamento","date"]].map(([k,lb,type,gc])=>(
+              {[["empresa","Empresa","text"],["proforma","Proforma","text"],["cliente","Cliente","text","1/span 2"],["produto","Produto","text","1/span 2"],["destino","País Destino","text"],["incoterm","Incoterm","incoterm"],["qtd","Quantidade","number"],["valor","Valor invoice","number"],["moeda","Moeda (USD/EUR)","text"],["valor_recebido","Valor recebido","number"],["prazo","Prazo Pgto (dias)","number"],["termos","Termos Pgto","termos"],["prontidao","Previsão Prontidão","date"],["carg","Data Carregamento","date"],["bl","Data BL","date"],["pgm","Previsão Pagamento","date"]].map(([k,lb,type,gc])=>(
                 <div key={k} style={{ gridColumn:gc }}>
                   <label style={lbl}>{lb}</label>
                   {type==="incoterm"?<select value={f[k]||"FOB"} onChange={e=>set(k,e.target.value)} style={inp}>{["FOB","CIF","CFR","EXW","DAP","DDP"].map(o=><option key={o}>{o}</option>)}</select>
@@ -207,6 +211,7 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
               </div>
             </div>
           )}
+          {subTab==="dados" && Array.isArray(f.parcelas_importadas) && <div style={{marginTop:20,overflowX:"auto"}}><h3>Histórico da planilha financeira</h3><table style={{width:"100%",fontSize:12}}><thead><tr>{["Parcela","Valor","Vencimento","Crédito","Liquidação","Emissão","Embarque"].map(t=><th key={t}>{t}</th>)}</tr></thead><tbody>{f.parcelas_importadas.map(x=><tr key={x.parcela}>{[x.parcela,moedaFmt(x.valor,x.moeda),fmtDate(x.vencimento),fmtDate(x.credito),fmtDate(x.liquidacao),fmtDate(x.emissao),fmtDate(x.embarque)].map((v,i)=><td key={i} style={{padding:5}}>{v}</td>)}</tr>)}</tbody></table><small>Histórico original da importação; alterações manuais do saldo não modificam estas parcelas.</small></div>}
           {subTab==="docs" && <DocChecklist docs={f.docs} onChange={setDoc}/>}
           {subTab==="arquivos" && (
             <div>
@@ -256,7 +261,7 @@ function Tabela({ rows, onEdit, cols={} }) {
         <thead><tr>
           <Th ch="Proforma"/><Th ch="Empresa"/><Th ch="Cliente"/><Th ch="Produto"/>
           {cols.prontidao&&<Th ch="Prontidão"/>}
-          <Th ch="USD" right/>
+          <Th ch="Valor invoice" right/>{cols.pgm&&<Th ch="Saldo a receber" right/>}
           {cols.carg&&<Th ch="Carregamento"/>}
           {cols.bl&&<Th ch="BL"/>}
           {cols.pgm&&<Th ch="Pgto Prev."/>}
@@ -273,7 +278,8 @@ function Tabela({ rows, onEdit, cols={} }) {
               <Td style={{ fontWeight:600 }}>{p.cliente}</Td>
               <Td style={{ color:C.sub, maxWidth:160 }}><span style={{ display:"block", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:160 }}>{p.produto}</span></Td>
               {cols.prontidao&&<Td>{p.prontidao?fmtDate(p.prontidao):<Pill color="amber">Indefinida</Pill>}</Td>}
-              <Td style={{ textAlign:"right", fontWeight:700, color:C.green }}>{fmtUSD(p.valor)}</Td>
+              <Td style={{ textAlign:"right", fontWeight:700, color:C.green }}>{moedaFmt(p.valor,p.moeda)}</Td>
+              {cols.pgm&&<Td>{moedaFmt(saldo(p),p.moeda)}</Td>}
               {cols.carg&&<Td>{p.carg?fmtDate(p.carg):<Pill color="red">Sem reserva</Pill>}</Td>}
               {cols.bl&&<Td style={{ color:C.sub }}>{fmtDate(p.bl)}</Td>}
               {cols.pgm&&<Td style={{ color:C.sub }}>{fmtDate(p.pgm)}</Td>}
@@ -381,11 +387,14 @@ export default function App() {
   },[session?.user?.id]);
 
   const saveProcesso = async (proc) => {
+    if(data.some(p=>p.id!==proc.id&&chave(p)===chave(proc))) { alert("Já existe um processo com essa proforma e empresa."); return; }
     if(!proc.proforma?.trim() || !proc.cliente?.trim()) { alert("Informe a proforma e o cliente."); return; }
     setSaving(true);
     try {
       const {id,created_at,...rest}=proc;
-      const payload={...rest,docs:{...docsIniciais(proc.produto),...proc.docs}};
+      if(proc.moeda && !["USD","EUR"].includes(proc.moeda)) throw new Error("Moeda deve ser USD ou EUR");
+      if(proc.valor_recebido!=="" && proc.valor_recebido!=null && (Number(proc.valor_recebido)<0 || Number(proc.valor_recebido)>Number(proc.valor))) throw new Error("Valor recebido inválido");
+      const payload={...rest,...(rest.valor_recebido===""?{valor_recebido:null}:{}),docs:{...docsIniciais(proc.produto),...proc.docs}};
       const result=id ? await supabase.from("processos").update({...payload,updated_at:new Date().toISOString()}).eq("id",id).select().single() : await supabase.from("processos").insert(payload).select().single();
       if(result.error || !result.data) throw result.error || new Error("Gravação não confirmada");
       setData(d=>id?d.map(p=>p.id===id?result.data:p):[...d,result.data]);
@@ -402,9 +411,9 @@ export default function App() {
   const semDocs   = data.filter(p=>p.status!=="PAGO"&&docsIncompletos(p));
   const vencidos  = data.filter(p=>p.pgm&&p.status!=="PAGO"&&daysDiff(p.pgm)<0);
   const mesAtual  = data.filter(p=>{ if(!p.pgm||p.status==="PAGO") return false; const d=new Date(p.pgm+"T12:00:00"); return d.getMonth()===TODAY.getMonth()&&d.getFullYear()===TODAY.getFullYear(); });
-  const totalPend = data.filter(p=>p.status!=="PAGO").reduce((a,p)=>a+Number(p.valor||0),0);
-  const totalVenc = vencidos.reduce((a,p)=>a+Number(p.valor||0),0);
-  const totalMes  = mesAtual.reduce((a,p)=>a+Number(p.valor||0),0);
+  const totalPend = data.filter(p=>p.status!=="PAGO").reduce((a,p)=>a+saldo(p),0);
+  const totalVenc = vencidos.reduce((a,p)=>a+saldo(p),0);
+  const totalMes  = mesAtual.reduce((a,p)=>a+saldo(p),0);
   const totalGeral= data.reduce((a,p)=>a+Number(p.valor||0),0);
   const clientes  = useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.cliente))).sort()],[data]);
   const listaFilt = useMemo(()=>data.filter(p=>{
@@ -468,19 +477,19 @@ export default function App() {
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, marginBottom:22 }}>
                 <KpiCard icon="📦" label="Total Processos" onClick={()=>navigate("todos","todos")} value={data.length} sub={`${data.filter(p=>p.status==="PAGO").length} pagos`}/>
-                <KpiCard icon="💵" label="Volume Total" onClick={()=>navigate("todos","todos")} value={fmtUSD(totalGeral)} sub="todos os processos"/>
-                <KpiCard icon="⏳" label="A Receber" onClick={()=>navigate("recebimentos","pendentes")} value={fmtUSD(totalPend)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`} color="amber"/>
-                <KpiCard icon="📅" label="Receber este Mês" onClick={()=>navigate("recebimentos","mes")} value={fmtUSD(totalMes)} sub={`${mesAtual.length} vencimentos`} color="green"/>
-                <KpiCard icon="🚨" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={fmtUSD(totalVenc)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
+                <KpiCard icon="💵" label="Volume Total" onClick={()=>navigate("todos","todos")} value={resumo(data)} sub="todos os processos"/>
+                <KpiCard icon="⏳" label="A Receber" onClick={()=>navigate("recebimentos","pendentes")} value={resumo(data.filter(p=>p.status!=="PAGO"),true)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`} color="amber"/>
+                <KpiCard icon="📅" label="Receber este Mês" onClick={()=>navigate("recebimentos","mes")} value={resumo(mesAtual,true)} sub={`${mesAtual.length} vencimentos`} color="green"/>
+                <KpiCard icon="🚨" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={resumo(vencidos,true)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
                 <KpiCard icon="🚢" label="Sem Booking" onClick={()=>navigate("booking","todos")} value={semRes.length} sub="pendentes de reserva" color={semRes.length>0?"red":"green"}/>
                 <KpiCard icon="📄" label="Docs Incompletos" onClick={()=>navigate("docs","todos")} value={semDocs.length} sub="com pendência" color={semDocs.length>0?"amber":"green"}/>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,340px),1fr))", gap:18, marginBottom:18 }}>
                 {[
-                  { title:"🚢 Booking Pendente", items:semRes, tabKey:"booking", val:(p)=>fmtUSD(p.valor), sub:(p)=>p.cliente },
-                  { title:"💰 Recebimentos do Mês", items:mesAtual, tabKey:"recebimentos", filter:"mes", val:(p)=>fmtUSD(p.valor), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/> },
+                  { title:"🚢 Booking Pendente", items:semRes, tabKey:"booking", val:(p)=>moedaFmt(p.valor,p.moeda), sub:(p)=>p.cliente },
+                  { title:"💰 Recebimentos do Mês", items:mesAtual, tabKey:"recebimentos", filter:"mes", val:(p)=>moedaFmt(saldo(p),p.moeda), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/> },
                   { title:"📄 Docs Pendentes", items:semDocs, tabKey:"docs", val:(p)=>{ const miss=Object.entries(p.docs||{}).filter(([,v])=>!v).map(([k])=>LABEL_DOC[k]); return <span style={{ fontSize:11, color:C.orange }}>{miss.slice(0,2).join(" · ")}{miss.length>2?"...":""}</span>; }, sub:(p)=>p.cliente },
-                  { title:"🔴 Pagamentos Vencidos", items:vencidos, tabKey:"recebimentos", filter:"vencidos", val:(p)=>fmtUSD(p.valor), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/>, alertColor:totalVenc>0?"red":"green" },
+                  { title:"🔴 Pagamentos Vencidos", items:vencidos, tabKey:"recebimentos", filter:"vencidos", val:(p)=>moedaFmt(saldo(p),p.moeda), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/>, alertColor:totalVenc>0?"red":"green" },
                 ].map(card=>(
                   <div key={card.title} style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:12, padding:"18px 20px", borderTop:`3px solid ${card.alertColor===("red")?C.red:card.alertColor===("green")?C.green:C.border}` }}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:12 }}>
@@ -500,15 +509,13 @@ export default function App() {
               <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:12, padding:"18px 20px" }}>
                 <div style={{ fontWeight:700, fontSize:14, marginBottom:14 }}>📊 Volume por Cliente</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))", gap:10 }}>
-                  {Object.entries(data.reduce((a,p)=>{a[p.cliente]=(a[p.cliente]||0)+Number(p.valor||0);return a},{})).sort((a,b)=>b[1]-a[1]).map(([cli,val])=>(
+                  {Object.entries(data.reduce((a,p)=>{a[p.cliente]=(a[p.cliente]||0)+Number(p.valor||0);return a},{})).sort((a,b)=>a[0].localeCompare(b[0])).map(([cli,val])=>(
                     <button className="client-card" key={cli} onClick={()=>navigate("todos","todos",cli)}>
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
                         <span style={{ fontSize:12, fontWeight:700 }}>{cli}</span>
-                        <span style={{ fontSize:12, fontWeight:700, color:C.green }}>{fmtUSD(val)}</span>
+                        <span style={{ fontSize:12, fontWeight:700, color:C.green }}>{resumo(data.filter(p=>p.cliente===cli))}</span>
                       </div>
-                      <div style={{ height:4, background:C.border, borderRadius:4 }}>
-                        <div style={{ height:"100%", width:`${(totalGeral?Number(val)/totalGeral*100:0)}%`, background:C.blue, borderRadius:4 }}/>
-                      </div>
+                      
                     </button>
                   ))}
                 </div>
@@ -520,7 +527,7 @@ export default function App() {
           {tab==="booking" && (
             <div>
               <h2 style={{ margin:"0 0 8px", fontSize:17, fontWeight:800 }}>Processos Pendentes de Booking</h2>
-              {semRes.length>0 && <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:9, padding:"11px 16px", marginBottom:16, fontSize:13, color:C.red, fontWeight:600 }}>⚠️ {semRes.length} processo{semRes.length>1?"s":""} sem reserva · {fmtUSD(semRes.reduce((a,p)=>a+Number(p.valor||0),0))} em aberto</div>}
+              {semRes.length>0 && <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:9, padding:"11px 16px", marginBottom:16, fontSize:13, color:C.red, fontWeight:600 }}>⚠️ {semRes.length} processo{semRes.length>1?"s":""} sem reserva · {resumo(semRes,true)} em aberto</div>}
               <Tabela rows={semRes} onEdit={setModal} cols={{ prontidao:true, carg:true, docs:true }}/>
             </div>
           )}
@@ -537,7 +544,7 @@ export default function App() {
                     <div key={p.id} onClick={()=>setModal(p)} style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:10, padding:"16px 20px", cursor:"pointer" }}>
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10, flexWrap:"wrap", gap:8 }}>
                         <div><span style={{ color:C.blue, fontWeight:700 }}>{p.proforma}</span><span style={{ color:C.sub, marginLeft:10 }}>{p.cliente}</span><span style={{ color:C.muted, marginLeft:8, fontSize:12 }}>{p.produto}</span></div>
-                        <div style={{ display:"flex", gap:8, alignItems:"center" }}><span style={{ fontWeight:700, color:C.green }}>{fmtUSD(p.valor)}</span><Badge status={p.status}/></div>
+                        <div style={{ display:"flex", gap:8, alignItems:"center" }}><span style={{ fontWeight:700, color:C.green }}>{moedaFmt(p.valor,p.moeda)}</span><Badge status={p.status}/></div>
                       </div>
                       <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:10 }}>
                         {miss.length>0 && <div><div style={{ fontSize:10, fontWeight:700, color:C.red, textTransform:"uppercase", letterSpacing:.8, marginBottom:4 }}>⚠ Pendente</div><div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>{miss.map(m=><Pill key={m} color="red">{m}</Pill>)}</div></div>}
@@ -557,9 +564,9 @@ export default function App() {
             <div>
               <h2>Controle de Recebimentos</h2><div className="filter-bar">{[["todos","Visão completa"],["vencidos","Vencidos"],["mes","Este mês"],["pendentes","Todos a receber"]].map(([id,label])=><button key={id} className={recebFiltro===id?"active":""} onClick={()=>setRecebFiltro(id)}>{label}</button>)}</div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:14, marginBottom:22 }}>
-                <KpiCard icon="🔴" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={fmtUSD(totalVenc)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
-                <KpiCard icon="📅" label="A receber no mês" onClick={()=>navigate("recebimentos","mes")} value={fmtUSD(totalMes)} sub={`${mesAtual.length} processos`} color="amber"/>
-                <KpiCard icon="⏳" label="Total a receber" onClick={()=>navigate("recebimentos","pendentes")} value={fmtUSD(totalPend)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`}/>
+                <KpiCard icon="🔴" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={resumo(vencidos,true)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
+                <KpiCard icon="📅" label="A receber no mês" onClick={()=>navigate("recebimentos","mes")} value={resumo(mesAtual,true)} sub={`${mesAtual.length} processos`} color="amber"/>
+                <KpiCard icon="⏳" label="Total a receber" onClick={()=>navigate("recebimentos","pendentes")} value={resumo(data.filter(p=>p.status!=="PAGO"),true)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`}/>
               </div>
               {(recebFiltro==="todos"||recebFiltro==="vencidos") && <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, color:C.red, fontSize:14, marginBottom:10 }}>🔴 Vencidos</div><Tabela rows={vencidos} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
               {(recebFiltro==="todos"||recebFiltro==="mes") && <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>📅 A receber em {TODAY.toLocaleString("pt-BR",{month:"long",year:"numeric"})}</div><Tabela rows={mesAtual.sort((a,b)=>new Date(a.pgm)-new Date(b.pgm))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
@@ -577,7 +584,7 @@ export default function App() {
                 <select value={filtroStatus} onChange={e=>setFiltroStatus(e.target.value)} style={{ border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 12px", fontSize:13, fontFamily:"inherit", background:C.white }}><option value="Todos">Todos os status</option>{STATUS_OPTIONS.map(s=><option key={s}>{s}</option>)}</select>
               </div>
               <Tabela rows={listaFilt} onEdit={setModal} cols={{ prontidao:true, carg:true, bl:true, pgm:true, docs:true, status:true }}/>
-              <div style={{ marginTop:10, fontSize:11, color:C.muted, textAlign:"right" }}>{listaFilt.length} de {data.length} · {fmtUSD(listaFilt.reduce((a,p)=>a+Number(p.valor||0),0))}</div>
+              <div style={{ marginTop:10, fontSize:11, color:C.muted, textAlign:"right" }}>{listaFilt.length} de {data.length} · {resumo(listaFilt)}</div>
             </div>
           )}
         </main>
