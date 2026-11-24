@@ -326,9 +326,11 @@ function Login({ onLogin }) {
 
   const entrar = async () => {
     setErro(""); setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if(error) setErro("E-mail ou senha incorretos.");
-    setLoading(false);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha });
+      if(error) setErro(error.status === 400 ? "E-mail ou senha incorretos." : "Não foi possível entrar. Verifique a conexão e tente novamente.");
+    } catch { setErro("Falha de conexão. Tente novamente."); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -376,7 +378,7 @@ export default function App() {
 
   // Auth
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session}})=>{ setSession(session); setAuthLoading(false); });
+    supabase.auth.getSession().then(({data, error})=>{ if(error) console.error(error); setSession(data?.session ?? null); }).catch(console.error).finally(()=>setAuthLoading(false));
     const {data:{subscription}} = supabase.auth.onAuthStateChange((_,s)=>setSession(s));
     return ()=>subscription.unsubscribe();
   },[]);
