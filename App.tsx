@@ -21,46 +21,6 @@ const fmtUSD   = (v) => "$"+Number(v||0).toLocaleString("pt-BR",{minimumFraction
 const semReserva = (p) => !p.carg && !p.bl && p.status !== "PAGO";
 const docsIncompletos = (p) => p.docs && Object.values(p.docs).some(v=>!v);
 
-// ─── DADOS INICIAIS ───────────────────────────────────────────────
-const SEED = [
-  { empresa:"RJ", proforma:"013-RJ-26", cliente:"GCC", produto:"BREU SC FLAKES PAPEL 25", qtd:52, valor:55900, carg:"2026-02-25", bl:"2026-03-25", prazo:60, termos:"DIAS DO BL", pgm:"2026-05-24", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"019-RJ-26", cliente:"SOLUCIONES", produto:"BREU BLOCO PAPEL 25", qtd:18, valor:21600, carg:"2026-03-09", bl:"2026-03-20", prazo:90, termos:"DIAS DO BL", pgm:"2026-06-18", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"021-1-RJ-26", cliente:"SAPTAGIR", produto:"TEREBINTINA", qtd:20, valor:66500, carg:"2026-03-16", bl:"2026-03-27", prazo:45, termos:"DIAS DO BL", pgm:"2026-05-11", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"COBRANÇA VIA BANCO" },
-  { empresa:"RJ", proforma:"014-RJ-26", cliente:"GLOBE", produto:"BREU TAMBOR 250", qtd:100, valor:103000, carg:"2026-03-30", bl:"2026-04-01", prazo:60, termos:"DIAS DO BL", pgm:"2026-05-31", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"021-2-RJ-26", cliente:"SAPTAGIR", produto:"TEREBINTINA", qtd:20, valor:66500, carg:"2026-03-27", bl:"2026-04-04", prazo:45, termos:"DIAS DO BL", pgm:"2026-05-19", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"COBRANÇA VIA BANCO" },
-  { empresa:"RJ", proforma:"030-RJ-26", cliente:"KALPSUTRA", produto:"TEREBINTINA", qtd:20, valor:66800, carg:"2026-03-23", bl:"2026-04-09", prazo:45, termos:"DIAS DO BL", pgm:"2026-05-24", status:"EM PROCESSAMENTO PELO BANCO", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"COBRANÇA VIA BANCO" },
-  { empresa:"RJ", proforma:"017-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 225", qtd:18, valor:18000, carg:"2026-03-11", bl:"2026-04-12", prazo:45, termos:"DIAS DO BL", pgm:"2026-05-27", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"023-RJ-26", cliente:"GLOBE", produto:"BREU TAMBOR 250", qtd:50, valor:50000, carg:"2026-03-26", bl:"2026-04-14", prazo:60, termos:"DIAS DO BL", pgm:"2026-06-13", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"024-RJ-26", cliente:"GLOBE", produto:"BREU TAMBOR 250", qtd:50, valor:50000, carg:"2026-04-09", bl:"2026-04-14", prazo:60, termos:"DIAS DO BL", pgm:"2026-06-13", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"035-1-RJ-26", cliente:"SAPTAGIR", produto:"TEREBINTINA", qtd:20, valor:70400, carg:"2026-04-13", bl:"2026-04-25", prazo:45, termos:"DIAS DO BL", pgm:"2026-06-09", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"COBRANÇA VIA BANCO" },
-  { empresa:"ALLIANCE", proforma:"005-RJ-26", cliente:"PINUS RUS", produto:"D-LIMONENO + BREU TAMBOR", qtd:24.76, valor:78169, carg:"2026-04-27", bl:"2026-05-08", prazo:60, termos:"DIAS DO BL", pgm:"2026-07-07", status:"PAGO", prontidao:null, incoterm:"CIF", destino:"Rússia", obs_prazo:"RECEBIMENTO RESTANTE REF. 005-AR-26", obs:"" },
-  { empresa:"RJ", proforma:"029-RJ-26", cliente:"AV POUND", produto:"TEREBINTINA", qtd:40, valor:124000, carg:"2026-04-20", bl:"2026-04-26", prazo:45, termos:"DIAS DO BL", pgm:"2026-06-10", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"025-RJ-26", cliente:"GCC", produto:"BREU SC FLAKES RAFIA 25", qtd:96, valor:103200, carg:"2026-04-23", bl:"2026-04-28", prazo:90, termos:"DIAS DO BL", pgm:"2026-07-27", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"EM PROCESSO DE PROEX" },
-  { empresa:"RJ", proforma:"051-RJ-26", cliente:"GCC", produto:"BREU SC FLAKES RAFIA 25", qtd:26, valor:27950, carg:"2026-01-28", bl:"2026-05-13", prazo:60, termos:"DIAS DO BL", pgm:"2026-07-12", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"ATRASO DO ARMADOR" },
-  { empresa:"RJ", proforma:"028-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 250", qtd:23, valor:23000, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"TAMBOR DE CABEÇA PRA BAIXO / PENDENTE NOVA RESERVA" },
-  { empresa:"RJ", proforma:"035-2-RJ-26", cliente:"SAPTAGIR", produto:"TEREBINTINA", qtd:20, valor:70400, carg:"2026-04-29", bl:"2026-05-14", prazo:45, termos:"DIAS DO BL", pgm:"2026-06-28", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"COBRANÇA VIA BANCO" },
-  { empresa:"RJ", proforma:"027-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 250", qtd:23, valor:23000, carg:"2026-05-14", bl:"2026-05-20", prazo:45, termos:"DIAS DO BL", pgm:"2026-07-04", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"032-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 250", qtd:50, valor:51500, carg:"2026-05-14", bl:"2026-05-20", prazo:45, termos:"DIAS DO BL", pgm:"2026-07-04", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"033-RJ-26", cliente:"GUANGDONG", produto:"BREU TAMBOR 250", qtd:50, valor:60000, carg:"2026-05-28", bl:"2026-06-01", prazo:60, termos:"DIAS DO BL", pgm:"2026-07-31", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"China", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"037-1-RJ-26", cliente:"KALPSUTRA", produto:"TEREBINTINA", qtd:40, valor:162000, carg:"2026-05-20", bl:"2026-06-02", prazo:45, termos:"DIAS DO BL", pgm:"2026-07-17", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"COBRANÇA VIA BANCO" },
-  { empresa:"RJ", proforma:"031-RJ-26", cliente:"GCC", produto:"BREU TAMBOR 250 + BREU FLAKE RAFIA 25", qtd:96, valor:103200, carg:"2026-05-31", bl:"2026-06-03", prazo:90, termos:"DIAS DO BL", pgm:"2026-09-01", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"2 CNTR SERÃO ESTUFADOS NA CODEL" },
-  { empresa:"RJ", proforma:"036-RJ-26", cliente:"GCC", produto:"BREU SC FLAKES RAFIA 25", qtd:96, valor:123840, carg:"2026-05-31", bl:"2026-06-03", prazo:90, termos:"DIAS DO BL", pgm:"2026-09-01", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"038-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 250", qtd:50, valor:62500, carg:"2026-06-02", bl:"2026-06-06", prazo:45, termos:"DIAS DO BL", pgm:"2026-07-21", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"037-2-RJ-26", cliente:"KALPSUTRA", produto:"TEREBINTINA", qtd:20, valor:81000, carg:"2026-06-04", bl:"2026-06-07", prazo:45, termos:"DIAS DO BL", pgm:"2026-07-22", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"COBRANÇA VIA BANCO" },
-  { empresa:"RJ", proforma:"039-RJ-26", cliente:"GCC", produto:"BREU TAMBOR 250", qtd:75, valor:105000, carg:"2026-06-05", bl:"2026-06-14", prazo:90, termos:"DIAS DO BL", pgm:"2026-09-12", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"040-RJ-26", cliente:"GLOBE", produto:"BREU TAMBOR 250", qtd:75, valor:78000, carg:"2026-05-25", bl:"2026-05-30", prazo:60, termos:"DIAS DO BL", pgm:"2026-07-29", status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"TAMBORES DEITADOS SEM PALLETS" },
-  { empresa:"ALLIANCE", proforma:"008-AR-26", cliente:"ARMARINE", produto:"BREU SC FLAKES RAFIA 25", qtd:24, valor:34800, carg:"2026-06-05", bl:null, prazo:30, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"041-RJ-26", cliente:"GCC", produto:"BREU TAMBOR 250 + BREU FLAKE RAFIA 25", qtd:192, valor:307200, carg:null, bl:null, prazo:90, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"", obs_prazo:"", obs:"4 CNTR BREU SACOS + 4 CNTR BREU TAMBOR" },
-  { empresa:"RJ", proforma:"042-RJ-26", cliente:"KALPSUTRA", produto:"TEREBINTINA", qtd:40, valor:171000, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"043-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 250", qtd:23, valor:36800, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"044-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 225", qtd:18, valor:28000, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"045-RJ-26", cliente:"MANGALAM", produto:"TEREBINTINA", qtd:40, valor:176000, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"Índia", obs_prazo:"", obs:"" },
-  { empresa:"ALLIANCE", proforma:"009-AR-26", cliente:"ARMARINE", produto:"BREU SC FLAKES RAFIA 25", qtd:24, valor:38400, carg:"2026-06-26", bl:null, prazo:30, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"RJ", proforma:"046-RJ-26", cliente:"AV POUND", produto:"BREU TAMBOR 250", qtd:23, valor:36800, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"ALLIANCE", proforma:"AMAL002-2026", cliente:"CIPEQ", produto:"BREU SC FLAKES RAFIA 25", qtd:0.3, valor:1485, carg:"2026-05-29", bl:"2026-06-01", prazo:3, termos:"DIAS DO BL", pgm:"2026-06-04", status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"" },
-  { empresa:"ALLIANCE", proforma:"010-AR-26", cliente:"PINUS RUS", produto:"BREU TAMBOR 250 + BREU FLAKE RAFIA 25", qtd:78, valor:121680, carg:null, bl:null, prazo:45, termos:"PARCELADO", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"CIF", destino:"Rússia", obs_prazo:"50% ADIANTADO + 50% 45 DIAS DO BL", obs:"" },
-];
-
 const STATUS_OPTIONS = ["PENDENTE","EM PROCESSAMENTO PELO BANCO","PAGO","PAGO PARCIAL","EM COBRANÇA","ATRASADO","INADIMPLENTE"];
 const STATUS_CFG = {
   "PENDENTE":                    { bg:"#f1f5f9", color:"#475569", border:"#cbd5e1", dot:"#94a3b8" },
@@ -91,14 +51,15 @@ function DaysBadge({ days }) {
   if(days<=15) return <Pill color="amber">{days}d</Pill>;
   return <Pill color="green">{days}d</Pill>;
 }
-function KpiCard({ label, value, sub, color="blue", icon }) {
+function KpiCard({ label, value, sub, color="blue", icon, onClick }) {
   const clr = color==="red"?C.red:color==="amber"?C.amber:color==="green"?C.green:C.blue;
   return (
-    <div style={{ background:C.white, border:`1px solid ${C.border}`, borderTop:`3px solid ${clr}`, borderRadius:10, padding:"14px 18px" }}>
+    <button type="button" className="kpi" onClick={onClick} disabled={!onClick} style={{ "--accent":clr }}>
       <div style={{ fontSize:11, color:C.sub, fontWeight:600, textTransform:"uppercase", letterSpacing:.6, marginBottom:6 }}>{icon} {label}</div>
       <div style={{ fontSize:22, fontWeight:800, color:clr }}>{value}</div>
-      {sub && <div style={{ fontSize:11, color:C.muted, marginTop:3 }}>{sub}</div>}
-    </div>
+      {sub && <div style={{ fontSize:11, color:C.sub, marginTop:5 }}>{sub}</div>}
+      {onClick && <span className="kpi-link">Ver detalhes →</span>}
+    </button>
   );
 }
 
@@ -160,7 +121,8 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
   }, [proc.id]);
 
   const loadArquivos = async () => {
-    const { data } = await supabase.from("arquivos").select("*").eq("processo_id", proc.id).order("created_at");
+    const { data,error } = await supabase.from("arquivos").select("*").eq("processo_id", proc.id).order("created_at");
+    if(error) alert("Falha ao consultar arquivos: "+error.message);
     if(data) setArquivos(data);
   };
 
@@ -170,23 +132,32 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
   const addFile = async (e) => {
     const files = Array.from(e.target.files);
     setUploading(true);
-    for(const file of files) {
-      const path = `${proc.id}/${Date.now()}_${file.name}`;
-      const { error } = await supabase.storage.from("arquivos").upload(path, file);
-      if(!error) {
-        const { data: urlData } = supabase.storage.from("arquivos").getPublicUrl(path);
-        await supabase.from("arquivos").insert({ processo_id:proc.id, nome:file.name, tamanho:file.size, tipo:file.type, url:urlData.publicUrl });
+    try {
+      for(const file of files) {
+        const path = `${proc.id}/${crypto.randomUUID()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,"_")}`;
+        const {error}=await supabase.storage.from("arquivos").upload(path,file);
+        if(error) throw error;
+        const {data:urlData}=supabase.storage.from("arquivos").getPublicUrl(path);
+        const {error:metaError}=await supabase.from("arquivos").insert({processo_id:proc.id,nome:file.name,tamanho:file.size,tipo:file.type,url:urlData.publicUrl});
+        if(metaError) {await supabase.storage.from("arquivos").remove([path]);throw metaError;}
       }
-    }
-    await loadArquivos();
-    setUploading(false);
-    e.target.value="";
+    } catch(e) {alert("Falha no envio de um ou mais arquivos: "+e.message);}
+    finally {await loadArquivos();setUploading(false);e.target.value="";}
   };
-
   const removeFile = async (arq) => {
     if(!window.confirm(`Remover ${arq.nome}?`)) return;
-    await supabase.from("arquivos").delete().eq("id", arq.id);
+    const {error}=await supabase.from("arquivos").delete().eq("id",arq.id);
+    if(error) {alert("Não foi possível remover: "+error.message);return;}
     setArquivos(a=>a.filter(x=>x.id!==arq.id));
+  };
+  const openFile = async (arq) => {
+    try {
+      const path=decodeURIComponent(new URL(arq.url).pathname.split("/object/public/arquivos/")[1]||"");
+      if(!path) throw new Error("Caminho de arquivo inválido");
+      const {data,error}=await supabase.storage.from("arquivos").createSignedUrl(path,60);
+      if(error) throw error;
+      window.location.assign(data.signedUrl);
+    } catch(e) {alert("Não foi possível abrir o arquivo: "+e.message);}
   };
 
   const inp = { width:"100%", boxSizing:"border-box", border:`1px solid ${C.border}`, borderRadius:7, padding:"8px 11px", fontSize:13, fontFamily:"inherit", color:C.text, background:C.white, outline:"none" };
@@ -253,7 +224,7 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
                         <div style={{ fontSize:12, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{arq.nome}</div>
                         <div style={{ fontSize:11, color:C.muted }}>{arq.tamanho?(arq.tamanho/1024).toFixed(1)+" KB":""}</div>
                       </div>
-                      <a href={arq.url} target="_blank" rel="noreferrer" style={{ background:"#eff6ff", color:C.blue, border:"1px solid #bfdbfe", borderRadius:5, padding:"4px 9px", fontSize:11, fontWeight:600, textDecoration:"none" }}>⬇</a>
+                      <button onClick={()=>openFile(arq)} style={{ background:"#eff6ff", color:C.blue, border:"1px solid #bfdbfe", borderRadius:5, padding:"4px 9px", fontSize:11, fontWeight:600, textDecoration:"none" }}>⬇</button>
                       <button onClick={()=>removeFile(arq)} style={{ background:"#fef2f2", color:C.red, border:"1px solid #fecaca", borderRadius:5, padding:"4px 9px", fontSize:11, cursor:"pointer" }}>🗑</button>
                     </div>
                   ))}
@@ -374,7 +345,13 @@ export default function App() {
   const [busca, setBusca] = useState("");
   const [filtroCliente, setFiltroCliente] = useState("Todos");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
-  const [seeded, setSeeded] = useState(false);
+  const [cloudError, setCloudError] = useState("");
+  const [synced, setSynced] = useState(null);
+  const [recebFiltro, setRecebFiltro] = useState("todos");
+  const navigate = (page, filter="todos", client="Todos") => {
+    setBusca(""); setFiltroCliente(client); setFiltroStatus("Todos");
+    setRecebFiltro(filter); setTab(page); window.scrollTo(0,0);
+  };
 
   // Auth
   useEffect(()=>{
@@ -383,45 +360,38 @@ export default function App() {
     return ()=>subscription.unsubscribe();
   },[]);
 
-  // Carregar dados
+  // Banco de dados como fonte oficial; nenhuma gravação local ou importação automática.
+  const loadData = async (quiet=false) => {
+    if(!quiet) setDbLoading(true);
+    try {
+      const {data:rows,error}=await supabase.from("processos").select("*").order("created_at");
+      if(error) throw error;
+      setData(rows || []); setCloudError(""); setSynced(new Date());
+    } catch(e) { setCloudError("Não foi possível consultar a nuvem: "+e.message); }
+    finally { if(!quiet) setDbLoading(false); }
+  };
   useEffect(()=>{
-    if(session) loadData();
-  },[session]);
-
-  const loadData = async () => {
-    setDbLoading(true);
-    const { data: rows, error } = await supabase.from("processos").select("*").order("created_at");
-    if(!error && rows) {
-      if(rows.length===0 && !seeded) {
-        await seedData();
-      } else {
-        setData(rows);
-      }
-    }
-    setDbLoading(false);
-  };
-
-  const seedData = async () => {
-    const toInsert = SEED.map(p=>({ ...p, docs: docsIniciais(p.produto) }));
-    const { data: inserted } = await supabase.from("processos").insert(toInsert).select();
-    if(inserted) setData(inserted);
-    setSeeded(true);
-  };
+    if(!session?.user?.id) { setData([]); setSynced(null); return; }
+    loadData();
+    const refresh=()=>loadData(true);
+    const timer=window.setInterval(refresh,30000);
+    window.addEventListener("focus",refresh);
+    return ()=>{window.clearInterval(timer);window.removeEventListener("focus",refresh);};
+  },[session?.user?.id]);
 
   const saveProcesso = async (proc) => {
+    if(!proc.proforma?.trim() || !proc.cliente?.trim()) { alert("Informe a proforma e o cliente."); return; }
     setSaving(true);
-    if(proc.id) {
-      const { id, created_at, ...rest } = proc;
-      const { data: updated } = await supabase.from("processos").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id).select().single();
-      if(updated) setData(d=>d.map(p=>p.id===id?updated:p));
-    } else {
-      const { id: _id, ...rest } = proc;
-      const toIns = { ...rest, docs: docsIniciais(proc.produto) };
-      const { data: inserted } = await supabase.from("processos").insert(toIns).select().single();
-      if(inserted) setData(d=>[...d, inserted]);
-    }
-    setSaving(false);
-    setModal(null);
+    try {
+      const {id,created_at,...rest}=proc;
+      const payload={...rest,docs:{...docsIniciais(proc.produto),...proc.docs}};
+      const result=id ? await supabase.from("processos").update({...payload,updated_at:new Date().toISOString()}).eq("id",id).select().single() : await supabase.from("processos").insert(payload).select().single();
+      if(result.error || !result.data) throw result.error || new Error("Gravação não confirmada");
+      setData(d=>id?d.map(p=>p.id===id?result.data:p):[...d,result.data]);
+      setSynced(new Date()); setCloudError(""); setModal(null);
+      await loadData(true);
+    } catch(e) { setCloudError("Falha ao salvar: "+e.message); alert("Dados não salvos. O formulário foi mantido. "+e.message); }
+    finally { setSaving(false); }
   };
 
   const logout = () => supabase.auth.signOut();
@@ -431,10 +401,10 @@ export default function App() {
   const semDocs   = data.filter(p=>p.status!=="PAGO"&&docsIncompletos(p));
   const vencidos  = data.filter(p=>p.pgm&&p.status!=="PAGO"&&daysDiff(p.pgm)<0);
   const mesAtual  = data.filter(p=>{ if(!p.pgm||p.status==="PAGO") return false; const d=new Date(p.pgm+"T12:00:00"); return d.getMonth()===TODAY.getMonth()&&d.getFullYear()===TODAY.getFullYear(); });
-  const totalPend = data.filter(p=>p.status!=="PAGO").reduce((a,p)=>a+(p.valor||0),0);
-  const totalVenc = vencidos.reduce((a,p)=>a+(p.valor||0),0);
-  const totalMes  = mesAtual.reduce((a,p)=>a+(p.valor||0),0);
-  const totalGeral= data.reduce((a,p)=>a+(p.valor||0),0);
+  const totalPend = data.filter(p=>p.status!=="PAGO").reduce((a,p)=>a+Number(p.valor||0),0);
+  const totalVenc = vencidos.reduce((a,p)=>a+Number(p.valor||0),0);
+  const totalMes  = mesAtual.reduce((a,p)=>a+Number(p.valor||0),0);
+  const totalGeral= data.reduce((a,p)=>a+Number(p.valor||0),0);
   const clientes  = useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.cliente))).sort()],[data]);
   const listaFilt = useMemo(()=>data.filter(p=>{
     const q=busca.toLowerCase();
@@ -459,9 +429,9 @@ export default function App() {
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 
       {/* TOPBAR */}
-      <div style={{ background:C.white, borderBottom:`1px solid ${C.border}`, padding:"0 24px", display:"flex", alignItems:"center", justifyContent:"space-between", height:56 }}>
+      <div className="topbar">
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ background:C.blue, borderRadius:8, padding:"6px 10px", fontSize:18 }}>🌊</div>
+          <div className="brand-mark">RJ</div>
           <div>
             <div style={{ fontWeight:800, fontSize:15, color:C.text }}>RJ & Alliance Exports</div>
             <div style={{ fontSize:11, color:C.muted }}>Controle de Exportação Marítima · {session.user.email}</div>
@@ -474,18 +444,19 @@ export default function App() {
       </div>
 
       {/* TABS */}
-      <div style={{ background:C.white, borderBottom:`1px solid ${C.border}`, padding:"0 24px", display:"flex", overflowX:"auto" }}>
+      <div className="nav-bar">
         {TABS.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{ background:"none", border:"none", borderBottom:`2px solid ${tab===t.id?C.blue:"transparent"}`, color:tab===t.id?C.blue:C.sub, padding:"12px 14px", fontSize:13, fontWeight:tab===t.id?700:500, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap" }}>
+          <button key={t.id} onClick={()=>navigate(t.id)} style={{ background:"none", border:"none", borderBottom:`2px solid ${tab===t.id?C.blue:"transparent"}`, color:tab===t.id?C.blue:C.sub, padding:"12px 14px", fontSize:13, fontWeight:tab===t.id?700:500, cursor:"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:5, whiteSpace:"nowrap" }}>
             {t.label}{t.alert>0&&<span style={{ background:"#fef2f2", color:C.red, border:"1px solid #fecaca", borderRadius:20, padding:"0 6px", fontSize:10, fontWeight:700 }}>{t.alert}</span>}
           </button>
         ))}
       </div>
 
+      <div className="cloud-bar"><span role="status">{cloudError ? cloudError : synced ? `Nuvem conectada · última consulta ${synced.toLocaleTimeString("pt-BR")}` : "Conectando à nuvem…"}</span><button onClick={()=>loadData()}>Atualizar dados</button></div>
       {dbLoading && <div style={{ textAlign:"center", padding:40, color:C.muted }}>Carregando dados...</div>}
 
       {!dbLoading && (
-        <div style={{ padding:"24px", maxWidth:1400, margin:"0 auto" }}>
+        <main className="workspace">
 
           {/* DASHBOARD */}
           {tab==="dashboard" && (
@@ -495,25 +466,25 @@ export default function App() {
                 <p style={{ margin:"4px 0 0", fontSize:13, color:C.sub }}>Visão consolidada de todos os processos</p>
               </div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, marginBottom:22 }}>
-                <KpiCard icon="📦" label="Total Processos" value={data.length} sub={`${data.filter(p=>p.status==="PAGO").length} pagos`}/>
-                <KpiCard icon="💵" label="Volume Total" value={fmtUSD(totalGeral)} sub="todos os processos"/>
-                <KpiCard icon="⏳" label="A Receber" value={fmtUSD(totalPend)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`} color="amber"/>
-                <KpiCard icon="📅" label="Receber este Mês" value={fmtUSD(totalMes)} sub={`${mesAtual.length} vencimentos`} color="green"/>
-                <KpiCard icon="🚨" label="Vencidos" value={fmtUSD(totalVenc)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
-                <KpiCard icon="🚢" label="Sem Booking" value={semRes.length} sub="pendentes de reserva" color={semRes.length>0?"red":"green"}/>
-                <KpiCard icon="📄" label="Docs Incompletos" value={semDocs.length} sub="com pendência" color={semDocs.length>0?"amber":"green"}/>
+                <KpiCard icon="📦" label="Total Processos" onClick={()=>navigate("todos","todos")} value={data.length} sub={`${data.filter(p=>p.status==="PAGO").length} pagos`}/>
+                <KpiCard icon="💵" label="Volume Total" onClick={()=>navigate("todos","todos")} value={fmtUSD(totalGeral)} sub="todos os processos"/>
+                <KpiCard icon="⏳" label="A Receber" onClick={()=>navigate("recebimentos","pendentes")} value={fmtUSD(totalPend)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`} color="amber"/>
+                <KpiCard icon="📅" label="Receber este Mês" onClick={()=>navigate("recebimentos","mes")} value={fmtUSD(totalMes)} sub={`${mesAtual.length} vencimentos`} color="green"/>
+                <KpiCard icon="🚨" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={fmtUSD(totalVenc)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
+                <KpiCard icon="🚢" label="Sem Booking" onClick={()=>navigate("booking","todos")} value={semRes.length} sub="pendentes de reserva" color={semRes.length>0?"red":"green"}/>
+                <KpiCard icon="📄" label="Docs Incompletos" onClick={()=>navigate("docs","todos")} value={semDocs.length} sub="com pendência" color={semDocs.length>0?"amber":"green"}/>
               </div>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18, marginBottom:18 }}>
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(min(100%,340px),1fr))", gap:18, marginBottom:18 }}>
                 {[
                   { title:"🚢 Booking Pendente", items:semRes, tabKey:"booking", val:(p)=>fmtUSD(p.valor), sub:(p)=>p.cliente },
-                  { title:"💰 Recebimentos do Mês", items:mesAtual, tabKey:"recebimentos", val:(p)=>fmtUSD(p.valor), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/> },
+                  { title:"💰 Recebimentos do Mês", items:mesAtual, tabKey:"recebimentos", filter:"mes", val:(p)=>fmtUSD(p.valor), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/> },
                   { title:"📄 Docs Pendentes", items:semDocs, tabKey:"docs", val:(p)=>{ const miss=Object.entries(p.docs||{}).filter(([,v])=>!v).map(([k])=>LABEL_DOC[k]); return <span style={{ fontSize:11, color:C.orange }}>{miss.slice(0,2).join(" · ")}{miss.length>2?"...":""}</span>; }, sub:(p)=>p.cliente },
-                  { title:"🔴 Pagamentos Vencidos", items:vencidos, tabKey:"recebimentos", val:(p)=>fmtUSD(p.valor), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/>, alertColor:totalVenc>0?"red":"green" },
+                  { title:"🔴 Pagamentos Vencidos", items:vencidos, tabKey:"recebimentos", filter:"vencidos", val:(p)=>fmtUSD(p.valor), sub:(p)=><DaysBadge days={daysDiff(p.pgm)}/>, alertColor:totalVenc>0?"red":"green" },
                 ].map(card=>(
                   <div key={card.title} style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:12, padding:"18px 20px", borderTop:`3px solid ${card.alertColor===("red")?C.red:card.alertColor===("green")?C.green:C.border}` }}>
                     <div style={{ display:"flex", justifyContent:"space-between", marginBottom:12 }}>
-                      <div style={{ fontWeight:700, fontSize:14 }}>{card.title}</div>
-                      <button onClick={()=>setTab(card.tabKey)} style={{ background:"none", border:"none", color:C.blue, fontSize:12, cursor:"pointer", fontWeight:600 }}>Ver todos →</button>
+                      <button className="plain-link" onClick={()=>navigate(card.tabKey,card.filter)}>{card.title}</button>
+                      <button onClick={()=>navigate(card.tabKey,card.filter)} style={{ background:"none", border:"none", color:C.blue, fontSize:12, cursor:"pointer", fontWeight:600 }}>Ver todos →</button>
                     </div>
                     {card.items.slice(0,4).map(p=>(
                       <div key={p.id} onClick={()=>setModal(p)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:"1px solid #f1f5f9", cursor:"pointer" }}>
@@ -528,16 +499,16 @@ export default function App() {
               <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:12, padding:"18px 20px" }}>
                 <div style={{ fontWeight:700, fontSize:14, marginBottom:14 }}>📊 Volume por Cliente</div>
                 <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(190px,1fr))", gap:10 }}>
-                  {Object.entries(data.reduce((a,p)=>{a[p.cliente]=(a[p.cliente]||0)+(p.valor||0);return a},{})).sort((a,b)=>b[1]-a[1]).map(([cli,val])=>(
-                    <div key={cli} style={{ background:"#f8fafc", borderRadius:8, padding:"10px 14px" }}>
+                  {Object.entries(data.reduce((a,p)=>{a[p.cliente]=(a[p.cliente]||0)+Number(p.valor||0);return a},{})).sort((a,b)=>b[1]-a[1]).map(([cli,val])=>(
+                    <button className="client-card" key={cli} onClick={()=>navigate("todos","todos",cli)}>
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
                         <span style={{ fontSize:12, fontWeight:700 }}>{cli}</span>
                         <span style={{ fontSize:12, fontWeight:700, color:C.green }}>{fmtUSD(val)}</span>
                       </div>
                       <div style={{ height:4, background:C.border, borderRadius:4 }}>
-                        <div style={{ height:"100%", width:`${(val/totalGeral*100)}%`, background:C.blue, borderRadius:4 }}/>
+                        <div style={{ height:"100%", width:`${(totalGeral?Number(val)/totalGeral*100:0)}%`, background:C.blue, borderRadius:4 }}/>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -548,7 +519,7 @@ export default function App() {
           {tab==="booking" && (
             <div>
               <h2 style={{ margin:"0 0 8px", fontSize:17, fontWeight:800 }}>Processos Pendentes de Booking</h2>
-              {semRes.length>0 && <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:9, padding:"11px 16px", marginBottom:16, fontSize:13, color:C.red, fontWeight:600 }}>⚠️ {semRes.length} processo{semRes.length>1?"s":""} sem reserva · {fmtUSD(semRes.reduce((a,p)=>a+(p.valor||0),0))} em aberto</div>}
+              {semRes.length>0 && <div style={{ background:"#fef2f2", border:"1px solid #fecaca", borderRadius:9, padding:"11px 16px", marginBottom:16, fontSize:13, color:C.red, fontWeight:600 }}>⚠️ {semRes.length} processo{semRes.length>1?"s":""} sem reserva · {fmtUSD(semRes.reduce((a,p)=>a+Number(p.valor||0),0))} em aberto</div>}
               <Tabela rows={semRes} onEdit={setModal} cols={{ prontidao:true, carg:true, docs:true }}/>
             </div>
           )}
@@ -583,15 +554,15 @@ export default function App() {
           {/* RECEBIMENTOS */}
           {tab==="recebimentos" && (
             <div>
-              <h2 style={{ margin:"0 0 16px", fontSize:17, fontWeight:800 }}>Controle de Recebimentos</h2>
+              <h2>Controle de Recebimentos</h2><div className="filter-bar">{[["todos","Visão completa"],["vencidos","Vencidos"],["mes","Este mês"],["pendentes","Todos a receber"]].map(([id,label])=><button key={id} className={recebFiltro===id?"active":""} onClick={()=>setRecebFiltro(id)}>{label}</button>)}</div>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:14, marginBottom:22 }}>
-                <KpiCard icon="🔴" label="Vencidos" value={fmtUSD(totalVenc)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
-                <KpiCard icon="📅" label="A receber no mês" value={fmtUSD(totalMes)} sub={`${mesAtual.length} processos`} color="amber"/>
-                <KpiCard icon="⏳" label="Total a receber" value={fmtUSD(totalPend)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`}/>
+                <KpiCard icon="🔴" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={fmtUSD(totalVenc)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
+                <KpiCard icon="📅" label="A receber no mês" onClick={()=>navigate("recebimentos","mes")} value={fmtUSD(totalMes)} sub={`${mesAtual.length} processos`} color="amber"/>
+                <KpiCard icon="⏳" label="Total a receber" onClick={()=>navigate("recebimentos","pendentes")} value={fmtUSD(totalPend)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`}/>
               </div>
-              {vencidos.length>0 && <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, color:C.red, fontSize:14, marginBottom:10 }}>🔴 Vencidos</div><Tabela rows={vencidos} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
-              <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>📅 A receber em {TODAY.toLocaleString("pt-BR",{month:"long",year:"numeric"})}</div><Tabela rows={mesAtual.sort((a,b)=>new Date(a.pgm)-new Date(b.pgm))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>
-              <div><div style={{ fontWeight:700, color:C.sub, fontSize:14, marginBottom:10 }}>📋 Todos os Pendentes</div><Tabela rows={data.filter(p=>p.status!=="PAGO").sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>
+              {(recebFiltro==="todos"||recebFiltro==="vencidos") && <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, color:C.red, fontSize:14, marginBottom:10 }}>🔴 Vencidos</div><Tabela rows={vencidos} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
+              {(recebFiltro==="todos"||recebFiltro==="mes") && <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>📅 A receber em {TODAY.toLocaleString("pt-BR",{month:"long",year:"numeric"})}</div><Tabela rows={mesAtual.sort((a,b)=>new Date(a.pgm)-new Date(b.pgm))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
+              {(recebFiltro==="todos"||recebFiltro==="pendentes") && <div><div style={{ fontWeight:700, color:C.sub, fontSize:14, marginBottom:10 }}>📋 Todos os Pendentes</div><Tabela rows={data.filter(p=>p.status!=="PAGO").sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
             </div>
           )}
 
@@ -605,10 +576,10 @@ export default function App() {
                 <select value={filtroStatus} onChange={e=>setFiltroStatus(e.target.value)} style={{ border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 12px", fontSize:13, fontFamily:"inherit", background:C.white }}><option value="Todos">Todos os status</option>{STATUS_OPTIONS.map(s=><option key={s}>{s}</option>)}</select>
               </div>
               <Tabela rows={listaFilt} onEdit={setModal} cols={{ prontidao:true, carg:true, bl:true, pgm:true, docs:true, status:true }}/>
-              <div style={{ marginTop:10, fontSize:11, color:C.muted, textAlign:"right" }}>{listaFilt.length} de {data.length} · {fmtUSD(listaFilt.reduce((a,p)=>a+(p.valor||0),0))}</div>
+              <div style={{ marginTop:10, fontSize:11, color:C.muted, textAlign:"right" }}>{listaFilt.length} de {data.length} · {fmtUSD(listaFilt.reduce((a,p)=>a+Number(p.valor||0),0))}</div>
             </div>
           )}
-        </div>
+        </main>
       )}
 
       {modal && <ProcessoModal proc={modal} onClose={()=>setModal(null)} onSave={saveProcesso} loading={saving}/>}

@@ -1,17 +1,18 @@
-# RJ & Alliance Exports
+# RJ & Alliance Exports — versão 2
 
-## Publicação no endereço existente
-1. Extraia o ZIP e substitua os arquivos na raiz do repositório Git conectado ao projeto exportacao-rj na Vercel. Remova os nomes antigos App 2.tsx, index 2.html e vite_config.js. Não exclua arquivos não fornecidos sem verificar sua função.
-2. Envie (commit/push) as mudanças para a branch de produção.
-3. Na Vercel, confira Settings > Build and Deployment: Vite, npm run build, dist; Root Directory deve apontar para a pasta com package.json.
-4. Em Deployments, confira o novo deploy de produção e abra https://exportacao-rj.vercel.app/.
+## Publicação
+Faça backup do banco de dados e dos arquivos atuais antes de atualizar. Extraia o ZIP e envie os arquivos da raiz para a branch main do repositório GitHub existente. Inclua style.css. A Vercel deve executar npm install e npm run build, publicando dist. Não crie outro projeto nem outro banco.
 
-## Teste local
-npm install
-npm run dev
-npm run build
+## Nuvem
+Mantém URL e chave anon do Supabase original. Utiliza as tabelas existentes processos e arquivos e bucket arquivos. Não executa migrações nem importação automática. Os dados comerciais iniciais foram retirados do código público; os registros existentes no banco não são alterados por esta atualização. Caso o banco esteja vazio, verifique o projeto e as permissões antes de importar qualquer dado.
 
-## Banco de dados
-A conexão Supabase e o login originais foram preservados. Não é necessário recriar tabelas nem apagar dados. Confirme que as políticas RLS de processos, arquivos e Storage restringem acesso a usuários autorizados. A chave anon original é pública por design, mas não substitui RLS. Não publique dados comerciais de SEED em repositório público; o código original inclui esses dados, que também ficam no bundle do navegador. Revise/remova esses dados do código antes de uma publicação pública, migrando-os com segurança se necessário.
+Verifique no Supabase se RLS está habilitado nas tabelas e se somente usuários autorizados possuem acesso. Não habilite acesso anon às informações comerciais. Revise também as políticas do Storage e torne o bucket arquivos privado (o aplicativo agora utiliza URLs assinadas para abrir os documentos). Não substitua a chave anon por uma chave service_role. As políticas dependem dos usuários autorizados da empresa e precisam ser verificadas no projeto existente. A remoção de anexos remove o registro da lista, mas não apaga fisicamente o objeto no Storage, preservando o arquivo para recuperação administrativa.
 
-Validação realizada: transpilação sintática TSX. Build completo e acesso ao endereço não confirmados devido à falta de rede e dependências instaladas neste ambiente.
+## Testes após publicação
+1. Login com conta autorizada; confira os registros existentes.
+2. Clique em cada indicador do painel e confira a lista/filtragem.
+3. Crie um processo de teste, edite os dados e confira em outro dispositivo após atualizar.
+4. Envie e abra um documento de teste; confirme permissões de acesso.
+5. Confira que o acesso sem login não permite ler dados nem baixar documentos privados.
+
+Validação local: transpilação TSX sem diagnósticos sintáticos. Dependências npm indisponíveis no cache local; build completo e testes com Supabase/Vercel ainda pendentes.
