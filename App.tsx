@@ -1,3 +1,4 @@
+import Reports, {fetchAll} from "./Reports";
 import brandLogo from "./logo-resinas-jardim.png";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
@@ -371,8 +372,8 @@ export default function App() {
   const loadData = async (quiet=false) => {
     if(!quiet) setDbLoading(true);
     try {
-      const {data:rows,error}=await supabase.from("processos").select("*").order("created_at");
-      if(error) throw error;
+      const rows=await fetchAll(supabase,"processos");
+      rows.sort((a,b)=>String(a.created_at||"").localeCompare(String(b.created_at||"")));
       setData(rows || []); setCloudError(""); setSynced(new Date());
     } catch(e) { setCloudError("Não foi possível consultar a nuvem: "+e.message); }
     finally { if(!quiet) setDbLoading(false); }
@@ -392,7 +393,7 @@ export default function App() {
     setSaving(true);
     try {
       const {id,created_at,...rest}=proc;
-      if(proc.moeda && !["USD","EUR"].includes(proc.moeda)) throw new Error("Moeda deve ser USD ou EUR");
+      if(proc.moeda && !["USD","EUR","BRL"].includes(proc.moeda)) throw new Error("Moeda deve ser USD, EUR ou BRL");
       if(proc.valor_recebido!=="" && proc.valor_recebido!=null && (Number(proc.valor_recebido)<0 || Number(proc.valor_recebido)>Number(proc.valor))) throw new Error("Valor recebido inválido");
       const payload={...rest,...(rest.valor_recebido===""?{valor_recebido:null}:{}),docs:{...docsIniciais(proc.produto),...proc.docs}};
       const result=id ? await supabase.from("processos").update({...payload,updated_at:new Date().toISOString()}).eq("id",id).select().single() : await supabase.from("processos").insert(payload).select().single();
@@ -429,6 +430,7 @@ export default function App() {
     {id:"docs",label:"Docs Pendentes",alert:semDocs.length},
     {id:"recebimentos",label:"Recebimentos"},
     {id:"todos",label:"Todos os Processos"},
+    {id:"reports",label:"Relatórios e Backup"},
   ];
 
   if(authLoading) return <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"Inter,sans-serif", color:C.muted }}>Carregando...</div>;
@@ -574,6 +576,7 @@ export default function App() {
             </div>
           )}
 
+          {tab==="reports" && <Reports key={session.user.id} client={supabase} rows={data} cloudError={cloudError}/>}
           {/* TODOS */}
           {tab==="todos" && (
             <div>
