@@ -1,3 +1,4 @@
+import brandLogo from "./logo-resinas-jardim.png";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -23,15 +24,15 @@ const docsIncompletos = (p) => p.docs && Object.values(p.docs).some(v=>!v);
 
 const STATUS_OPTIONS = ["PENDENTE","EM PROCESSAMENTO PELO BANCO","PAGO","PAGO PARCIAL","EM COBRANÇA","ATRASADO","INADIMPLENTE"];
 const STATUS_CFG = {
-  "PENDENTE":                    { bg:"#f1f5f9", color:"#475569", border:"#cbd5e1", dot:"#94a3b8" },
-  "EM PROCESSAMENTO PELO BANCO": { bg:"#eff6ff", color:"#1d4ed8", border:"#bfdbfe", dot:"#3b82f6" },
+  "PENDENTE":                    { bg:"#eff0e9", color:"#536458", border:"#d9ddd2", dot:"#68786b" },
+  "EM PROCESSAMENTO PELO BANCO": { bg:"#f5f0e4", color:"#795c28", border:"#dfcfaa", dot:"#bd9855" },
   "PAGO":                        { bg:"#f0fdf4", color:"#15803d", border:"#bbf7d0", dot:"#22c55e" },
   "PAGO PARCIAL":                { bg:"#fefce8", color:"#a16207", border:"#fde68a", dot:"#eab308" },
   "EM COBRANÇA":                 { bg:"#fff7ed", color:"#c2410c", border:"#fed7aa", dot:"#f97316" },
   "ATRASADO":                    { bg:"#fef2f2", color:"#b91c1c", border:"#fecaca", dot:"#ef4444" },
   "INADIMPLENTE":                { bg:"#fdf2f8", color:"#9d174d", border:"#fbcfe8", dot:"#ec4899" },
 };
-const C = { white:"#ffffff", bg:"#f8fafc", border:"#e2e8f0", text:"#0f172a", sub:"#475569", muted:"#94a3b8", blue:"#2563eb", green:"#16a34a", red:"#dc2626", orange:"#ea580c", amber:"#d97706" };
+const C = { white:"#ffffff", bg:"#f5f5ef", border:"#dedfd5", text:"#203a2b", sub:"#536458", muted:"#68786b", blue:"#1d402e", green:"#28734a", red:"#c82931", orange:"#ea580c", amber:"#946b25" };
 
 // ─── UI ATOMS ─────────────────────────────────────────────────────
 function Badge({ status }) {
@@ -39,7 +40,7 @@ function Badge({ status }) {
   return <span style={{ display:"inline-flex", alignItems:"center", gap:4, background:s.bg, color:s.color, border:`1px solid ${s.border}`, borderRadius:4, padding:"2px 8px", fontSize:11, fontWeight:600, whiteSpace:"nowrap" }}><span style={{ width:6, height:6, borderRadius:"50%", background:s.dot, flexShrink:0 }}/>{status}</span>;
 }
 function Pill({ children, color="gray" }) {
-  const m = { blue:{bg:"#eff6ff",c:"#1d4ed8",b:"#bfdbfe"}, red:{bg:"#fef2f2",c:"#b91c1c",b:"#fecaca"}, amber:{bg:"#fefce8",c:"#92400e",b:"#fde68a"}, green:{bg:"#f0fdf4",c:"#15803d",b:"#bbf7d0"}, gray:{bg:"#f1f5f9",c:"#475569",b:"#cbd5e1"} };
+  const m = { blue:{bg:"#f5f0e4",c:"#795c28",b:"#dfcfaa"}, red:{bg:"#fef2f2",c:"#b91c1c",b:"#fecaca"}, amber:{bg:"#fefce8",c:"#92400e",b:"#fde68a"}, green:{bg:"#f0fdf4",c:"#15803d",b:"#bbf7d0"}, gray:{bg:"#eff0e9",c:"#536458",b:"#d9ddd2"} };
   const s = m[color]||m.gray;
   return <span style={{ background:s.bg, color:s.c, border:`1px solid ${s.b}`, borderRadius:4, padding:"1px 7px", fontSize:11, fontWeight:600, whiteSpace:"nowrap" }}>{children}</span>;
 }
@@ -77,7 +78,7 @@ function DocChecklist({ docs, onChange, compact }) {
   const pct = total>0?Math.round((feitos/total)*100):0;
   if(compact) return (
     <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-      <div style={{ flex:1, height:4, background:"#e2e8f0", borderRadius:4, minWidth:50 }}>
+      <div style={{ flex:1, height:4, background:"#dedfd5", borderRadius:4, minWidth:50 }}>
         <div style={{ height:"100%", width:`${pct}%`, background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444", borderRadius:4 }}/>
       </div>
       <span style={{ fontSize:11, color:C.sub, fontWeight:600 }}>{feitos}/{total}</span>
@@ -86,7 +87,7 @@ function DocChecklist({ docs, onChange, compact }) {
   return (
     <div>
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-        <div style={{ flex:1, height:6, background:"#f1f5f9", borderRadius:4 }}>
+        <div style={{ flex:1, height:6, background:"#eff0e9", borderRadius:4 }}>
           <div style={{ height:"100%", width:`${pct}%`, background:pct===100?"#22c55e":pct>60?"#f59e0b":"#ef4444", borderRadius:4, transition:"width .3s" }}/>
         </div>
         <span style={{ fontSize:12, fontWeight:700, color:C.sub }}>{feitos}/{total} ({pct}%)</span>
@@ -95,7 +96,7 @@ function DocChecklist({ docs, onChange, compact }) {
         <div key={g.titulo} style={{ marginBottom:10 }}>
           <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:"uppercase", letterSpacing:.8, marginBottom:5 }}>{g.titulo}</div>
           {g.keys.filter(k=>k in docs).map(k=>(
-            <label key={k} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", padding:"6px 10px", borderRadius:6, background:docs[k]?"#f0fdf4":"#f8fafc", border:`1px solid ${docs[k]?"#bbf7d0":C.border}`, marginBottom:4 }}>
+            <label key={k} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", padding:"6px 10px", borderRadius:6, background:docs[k]?"#f0fdf4":"#f5f5ef", border:`1px solid ${docs[k]?"#bbf7d0":C.border}`, marginBottom:4 }}>
               <input type="checkbox" checked={docs[k]} onChange={e=>onChange&&onChange(k,e.target.checked)} style={{ accentColor:"#22c55e", width:14, height:14 }}/>
               <span style={{ fontSize:12, fontWeight:600, color:docs[k]?C.green:C.sub }}>{LABEL_DOC[k]}</span>
               {docs[k] && <span style={{ marginLeft:"auto", fontSize:10, color:C.green }}>✓</span>}
@@ -212,19 +213,19 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
               {isNew && <div style={{ background:"#fefce8", border:"1px solid #fde68a", borderRadius:8, padding:"10px 14px", fontSize:12, color:"#92400e", marginBottom:14 }}>💡 Salve o processo primeiro para poder anexar arquivos.</div>}
               {!isNew && (
                 <>
-                  <div onClick={()=>fileRef.current.click()} style={{ border:`2px dashed ${C.border}`, borderRadius:10, padding:"24px", textAlign:"center", cursor:"pointer", marginBottom:14, background:"#f8fafc" }}>
+                  <div onClick={()=>fileRef.current.click()} style={{ border:`2px dashed ${C.border}`, borderRadius:10, padding:"24px", textAlign:"center", cursor:"pointer", marginBottom:14, background:"#f5f5ef" }}>
                     <div style={{ fontSize:24, marginBottom:6 }}>📎</div>
                     <div style={{ color:C.sub, fontSize:13 }}>{uploading?"Enviando...":"Clique para anexar arquivos"}</div>
                   </div>
                   <input ref={fileRef} type="file" multiple style={{ display:"none" }} onChange={addFile}/>
                   {arquivos.map(arq=>(
-                    <div key={arq.id} style={{ display:"flex", alignItems:"center", gap:10, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 13px", marginBottom:8, background:"#f8fafc" }}>
+                    <div key={arq.id} style={{ display:"flex", alignItems:"center", gap:10, border:`1px solid ${C.border}`, borderRadius:8, padding:"9px 13px", marginBottom:8, background:"#f5f5ef" }}>
                       <span style={{ fontSize:18 }}>📎</span>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:12, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{arq.nome}</div>
                         <div style={{ fontSize:11, color:C.muted }}>{arq.tamanho?(arq.tamanho/1024).toFixed(1)+" KB":""}</div>
                       </div>
-                      <button onClick={()=>openFile(arq)} style={{ background:"#eff6ff", color:C.blue, border:"1px solid #bfdbfe", borderRadius:5, padding:"4px 9px", fontSize:11, fontWeight:600, textDecoration:"none" }}>⬇</button>
+                      <button onClick={()=>openFile(arq)} style={{ background:"#f5f0e4", color:C.blue, border:"1px solid #dfcfaa", borderRadius:5, padding:"4px 9px", fontSize:11, fontWeight:600, textDecoration:"none" }}>⬇</button>
                       <button onClick={()=>removeFile(arq)} style={{ background:"#fef2f2", color:C.red, border:"1px solid #fecaca", borderRadius:5, padding:"4px 9px", fontSize:11, cursor:"pointer" }}>🗑</button>
                     </div>
                   ))}
@@ -244,8 +245,8 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
 }
 
 // ─── TABELA ───────────────────────────────────────────────────────
-function Th({ ch, right }) { return <th style={{ padding:"9px 12px", fontSize:11, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:.5, textAlign:right?"right":"left", borderBottom:`1px solid ${C.border}`, background:"#f8fafc", whiteSpace:"nowrap" }}>{ch}</th>; }
-function Td({ children, style }) { return <td style={{ padding:"10px 12px", borderBottom:"1px solid #f1f5f9", verticalAlign:"middle", fontSize:13, ...style }}>{children}</td>; }
+function Th({ ch, right }) { return <th style={{ padding:"9px 12px", fontSize:11, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:.5, textAlign:right?"right":"left", borderBottom:`1px solid ${C.border}`, background:"#f5f5ef", whiteSpace:"nowrap" }}>{ch}</th>; }
+function Td({ children, style }) { return <td style={{ padding:"10px 12px", borderBottom:"1px solid #eff0e9", verticalAlign:"middle", fontSize:13, ...style }}>{children}</td>; }
 
 function Tabela({ rows, onEdit, cols={} }) {
   if(!rows.length) return <div style={{ textAlign:"center", padding:40, color:C.muted }}>Nenhum processo encontrado</div>;
@@ -279,7 +280,7 @@ function Tabela({ rows, onEdit, cols={} }) {
               {cols.diasPgm&&<Td><DaysBadge days={daysDiff(p.pgm)}/></Td>}
               {cols.docs&&<Td style={{ minWidth:100 }}><DocChecklist docs={p.docs||{}} compact/></Td>}
               {cols.status&&<Td><Badge status={p.status}/></Td>}
-              <Td><button onClick={e=>{e.stopPropagation();onEdit(p)}} style={{ background:"#eff6ff", color:C.blue, border:"1px solid #bfdbfe", borderRadius:5, padding:"4px 10px", fontSize:11, fontWeight:600, cursor:"pointer" }}>Abrir</button></Td>
+              <Td><button onClick={e=>{e.stopPropagation();onEdit(p)}} style={{ background:"#f5f0e4", color:C.blue, border:"1px solid #dfcfaa", borderRadius:5, padding:"4px 10px", fontSize:11, fontWeight:600, cursor:"pointer" }}>Abrir</button></Td>
             </tr>
           ))}
         </tbody>
@@ -305,10 +306,10 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight:"100vh", background:"#f8fafc", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Inter','Segoe UI',sans-serif" }}>
-      <div style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:16, padding:"40px 36px", width:"100%", maxWidth:380, boxShadow:"0 4px 24px rgba(0,0,0,.07)" }}>
+    <div className="login-shell" style={{ minHeight:"100vh", background:"#f5f5ef", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'Inter','Segoe UI',sans-serif" }}>
+      <div className="login-card" style={{ background:C.white, border:`1px solid ${C.border}`, borderRadius:16, padding:"40px 36px", width:"100%", maxWidth:380, boxShadow:"0 4px 24px rgba(0,0,0,.07)" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ background:C.blue, borderRadius:12, padding:"10px 16px", fontSize:28, display:"inline-block", marginBottom:12 }}>🌊</div>
+          <img className="login-logo" src={brandLogo} alt="Resinas Jardim"/>
           <div style={{ fontSize:20, fontWeight:800, color:C.text }}>RJ & Alliance Exports</div>
           <div style={{ fontSize:13, color:C.muted, marginTop:4 }}>Controle de Exportação Marítima</div>
         </div>
@@ -431,7 +432,7 @@ export default function App() {
       {/* TOPBAR */}
       <div className="topbar">
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div className="brand-mark">RJ</div>
+          <img className="brand-logo" src={brandLogo} alt="Resinas Jardim"/>
           <div>
             <div style={{ fontWeight:800, fontSize:15, color:C.text }}>RJ & Alliance Exports</div>
             <div style={{ fontSize:11, color:C.muted }}>Controle de Exportação Marítima · {session.user.email}</div>
@@ -439,7 +440,7 @@ export default function App() {
         </div>
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={()=>setModal(emptyProc)} style={{ background:C.blue, color:"#fff", border:"none", borderRadius:7, padding:"7px 16px", fontWeight:700, fontSize:13, cursor:"pointer" }}>+ Novo Processo</button>
-          <button onClick={logout} style={{ background:"#f1f5f9", color:C.sub, border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 14px", fontWeight:600, fontSize:13, cursor:"pointer" }}>Sair</button>
+          <button onClick={logout} style={{ background:"#eff0e9", color:C.sub, border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 14px", fontWeight:600, fontSize:13, cursor:"pointer" }}>Sair</button>
         </div>
       </div>
 
@@ -487,7 +488,7 @@ export default function App() {
                       <button onClick={()=>navigate(card.tabKey,card.filter)} style={{ background:"none", border:"none", color:C.blue, fontSize:12, cursor:"pointer", fontWeight:600 }}>Ver todos →</button>
                     </div>
                     {card.items.slice(0,4).map(p=>(
-                      <div key={p.id} onClick={()=>setModal(p)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:"1px solid #f1f5f9", cursor:"pointer" }}>
+                      <div key={p.id} onClick={()=>setModal(p)} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 0", borderBottom:"1px solid #eff0e9", cursor:"pointer" }}>
                         <div><span style={{ fontSize:12, fontWeight:700, color:C.blue }}>{p.proforma}</span><span style={{ fontSize:12, color:C.sub, marginLeft:8 }}>{p.cliente}</span></div>
                         <div style={{ textAlign:"right", fontSize:12 }}>{card.val(p)}</div>
                       </div>

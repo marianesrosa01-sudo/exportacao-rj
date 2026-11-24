@@ -16,3 +16,6 @@ Verifique no Supabase se RLS está habilitado nas tabelas e se somente usuários
 5. Confira que o acesso sem login não permite ler dados nem baixar documentos privados.
 
 Validação local: transpilação TSX sem diagnósticos sintáticos. Dependências npm indisponíveis no cache local; build completo e testes com Supabase/Vercel ainda pendentes.
+
+## Versão 3 — identidade Resinas Jardim
+Paleta baseada na referência enviada; logomarca recortada da captura de tela. Inclua logo-resinas-jardim.png junto dos demais arquivos na raiz. Nenhuma alteração no banco ou nas regras de navegação da versão 2.
