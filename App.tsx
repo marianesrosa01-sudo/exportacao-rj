@@ -1,3 +1,5 @@
+import Overview from "./Overview";
+import ClientNames from "./ClientNames";
 import ProcessFilters, {matches, situation, rowColors} from "./ProcessFilters";
 import Reports, {fetchAll} from "./Reports";
 import brandLogo from "./logo-resinas-jardim.png";
@@ -22,7 +24,7 @@ const daysDiff = (d) => { if(!d) return null; return Math.ceil((new Date(d+"T12:
 const fmtDate  = (d) => { if(!d) return "—"; return new Date(d+"T12:00:00").toLocaleDateString("pt-BR"); };
 const fmtUSD   = (v) => "$"+Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:0});
 const moedaFmt=(v,m="USD")=>`${m} ${Number(v||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const saldo=p=>p.status==="PAGO"?0:Math.max(0,Number(p.valor||0)-Number(p.valor_recebido||0));
+const saldo=p=>situation(p)==="Recebido"?0:Math.max(0,Number(p.valor||0)-Number(p.valor_recebido||0));
 const resumo=(rows,pend=false)=>Object.entries(rows.reduce((a,p)=>{const m=p.moeda||"USD";a[m]=(a[m]||0)+(pend?saldo(p):Number(p.valor||0));return a},{})).map(([m,v])=>moedaFmt(v,m)).join(" · ")||moedaFmt(0);
 const chave=p=>String(p.empresa||"").trim().toUpperCase()+"|"+String(p.proforma||"").trim().toUpperCase().replace(/^0+(?=\d)/,"");
 const semReserva = (p) => !p.carg && !p.bl && p.status !== "PAGO";
@@ -255,6 +257,11 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
 function Th({ ch, right }) { return <th style={{ padding:"9px 12px", fontSize:11, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:.5, textAlign:right?"right":"left", borderBottom:`1px solid ${C.border}`, background:"#f5f5ef", whiteSpace:"nowrap" }}>{ch}</th>; }
 function Td({ children, style }) { return <td style={{ padding:"10px 12px", borderBottom:"1px solid #eff0e9", verticalAlign:"middle", fontSize:13, ...style }}>{children}</td>; }
 
+function CompactProcesses({rows,onEdit}) {
+ const item=(label,value)=><div className="compact-field"><small>{label}</small><span>{value??"—"}</span></div>;
+ return <div className="compact-list">{!rows.length&&<p>Nenhum processo encontrado.</p>}{rows.map(p=><article key={p.id||p.proforma} className="compact-process" style={{background:rowColors[situation(p)]}}><div className="compact-identity"><button className="plain-link" onClick={()=>onEdit(p)}>{p.proforma}</button><strong>{p.cliente}</strong><span>{p.produto}</span>{item("Empresa / mercado",[p.empresa,p.mercado].filter(Boolean).join(" · "))}{item("Destino / Incoterm",[p.destino,p.incoterm].filter(Boolean).join(" · ")||"—")}{item("Quantidade",p.qtd)}</div><div className="compact-finance">{item("Valor invoice",moedaFmt(p.valor,p.moeda))}{item("Recebido",p.valor_recebido==null?(situation(p)==="Recebido"?moedaFmt(p.valor,p.moeda):"Não informado"):moedaFmt(p.valor_recebido,p.moeda))}{item("Saldo a receber",moedaFmt(situation(p)==="Recebido"?0:saldo(p),p.moeda))}{item("Condições",[p.prazo!=null?p.prazo+" dias":"",p.termos].filter(Boolean).join(" · ")||"—")}</div><div className="compact-dates">{item("Prontidão",fmtDate(p.prontidao))}{item("Carregamento",fmtDate(p.carg))}{item("BL",fmtDate(p.bl))}{item("Vencimento",fmtDate(p.pgm))}</div><div className="compact-state"><strong>{situation(p)}</strong><span className="status-wrap">{p.status}</span>{item("Documentos",<DocChecklist docs={p.docs||{}} compact/>)}{item("Obs. pagamento",p.obs_prazo||"—")}{item("Observações",p.obs||"—")}<button className="compact-open" onClick={()=>onEdit(p)}>Abrir processo</button></div></article>)}</div>;
+}
+
 function Tabela({ rows, onEdit, cols={} }) {
   if(!rows.length) return <div style={{ textAlign:"center", padding:40, color:C.muted }}>Nenhum processo encontrado</div>;
   return (
@@ -412,10 +419,10 @@ export default function App() {
 
   // Derivados
   const semRes    = data.filter(semReserva);
-  const semDocs   = data.filter(p=>p.status!=="PAGO"&&docsIncompletos(p));
-  const vencidos  = data.filter(p=>p.pgm&&p.status!=="PAGO"&&daysDiff(p.pgm)<0);
-  const mesAtual  = data.filter(p=>{ if(!p.pgm||p.status==="PAGO") return false; const d=new Date(p.pgm+"T12:00:00"); return d.getMonth()===TODAY.getMonth()&&d.getFullYear()===TODAY.getFullYear(); });
-  const totalPend = data.filter(p=>p.status!=="PAGO").reduce((a,p)=>a+saldo(p),0);
+  const semDocs   = data.filter(p=>situation(p)!=="Recebido"&&docsIncompletos(p));
+  const vencidos  = data.filter(p=>situation(p)==="Em atraso");
+  const mesAtual  = data.filter(p=>{ if(!p.pgm||situation(p)==="Recebido") return false; const d=new Date(p.pgm+"T12:00:00"); return d.getMonth()===TODAY.getMonth()&&d.getFullYear()===TODAY.getFullYear(); });
+  const totalPend = data.filter(p=>situation(p)!=="Recebido").reduce((a,p)=>a+saldo(p),0);
   const totalVenc = vencidos.reduce((a,p)=>a+saldo(p),0);
   const totalMes  = mesAtual.reduce((a,p)=>a+saldo(p),0);
   const totalGeral= data.reduce((a,p)=>a+Number(p.valor||0),0);
@@ -471,19 +478,16 @@ export default function App() {
       {dbLoading && <div style={{ textAlign:"center", padding:40, color:C.muted }}>Carregando dados...</div>}
 
       {!dbLoading && (
-        <main className="workspace">
+        <main className={"workspace "+(tab==="todos"?"all-processes":tab==="dashboard"?"dashboard-workspace":"")}>
 
           {/* DASHBOARD */}
           {tab==="dashboard" && (
             <div>
-              <div style={{ marginBottom:20 }}>
-                <h2 style={{ margin:0, fontSize:17, fontWeight:800, color:C.text }}>Painel Geral</h2>
-                <p style={{ margin:"4px 0 0", fontSize:13, color:C.sub }}>Visão consolidada de todos os processos</p>
-              </div>
+              <Overview rows={data} onEdit={setModal} onStatus={status=>{navigate("todos");setProcessFilters({situacao:status});}}/>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, marginBottom:22 }}>
-                <KpiCard icon="📦" label="Total Processos" onClick={()=>navigate("todos","todos")} value={data.length} sub={`${data.filter(p=>p.status==="PAGO").length} pagos`}/>
+                <KpiCard icon="📦" label="Total Processos" onClick={()=>navigate("todos","todos")} value={data.length} sub={`${data.filter(p=>situation(p)==="Recebido").length} pagos`}/>
                 <KpiCard icon="💵" label="Volume Total" onClick={()=>navigate("todos","todos")} value={resumo(data)} sub="todos os processos"/>
-                <KpiCard icon="⏳" label="A Receber" onClick={()=>navigate("recebimentos","pendentes")} value={resumo(data.filter(p=>p.status!=="PAGO"),true)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`} color="amber"/>
+                <KpiCard icon="⏳" label="A Receber" onClick={()=>navigate("recebimentos","pendentes")} value={resumo(data.filter(p=>situation(p)!=="Recebido"),true)} sub={`${data.filter(p=>situation(p)!=="Recebido").length} processos`} color="amber"/>
                 <KpiCard icon="📅" label="Receber este Mês" onClick={()=>navigate("recebimentos","mes")} value={resumo(mesAtual,true)} sub={`${mesAtual.length} vencimentos`} color="green"/>
                 <KpiCard icon="🚨" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={resumo(vencidos,true)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
                 <KpiCard icon="🚢" label="Sem Booking" onClick={()=>navigate("booking","todos")} value={semRes.length} sub="pendentes de reserva" color={semRes.length>0?"red":"green"}/>
@@ -571,11 +575,11 @@ export default function App() {
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:14, marginBottom:22 }}>
                 <KpiCard icon="🔴" label="Vencidos" onClick={()=>navigate("recebimentos","vencidos")} value={resumo(vencidos,true)} sub={`${vencidos.length} processos`} color={totalVenc>0?"red":"green"}/>
                 <KpiCard icon="📅" label="A receber no mês" onClick={()=>navigate("recebimentos","mes")} value={resumo(mesAtual,true)} sub={`${mesAtual.length} processos`} color="amber"/>
-                <KpiCard icon="⏳" label="Total a receber" onClick={()=>navigate("recebimentos","pendentes")} value={resumo(data.filter(p=>p.status!=="PAGO"),true)} sub={`${data.filter(p=>p.status!=="PAGO").length} processos`}/>
+                <KpiCard icon="⏳" label="Total a receber" onClick={()=>navigate("recebimentos","pendentes")} value={resumo(data.filter(p=>situation(p)!=="Recebido"),true)} sub={`${data.filter(p=>situation(p)!=="Recebido").length} processos`}/>
               </div>
               {(recebFiltro==="todos"||recebFiltro==="vencidos") && <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, color:C.red, fontSize:14, marginBottom:10 }}>🔴 Vencidos</div><Tabela rows={vencidos} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
               {(recebFiltro==="todos"||recebFiltro==="mes") && <div style={{ marginBottom:24 }}><div style={{ fontWeight:700, fontSize:14, marginBottom:10 }}>📅 A receber em {TODAY.toLocaleString("pt-BR",{month:"long",year:"numeric"})}</div><Tabela rows={mesAtual.sort((a,b)=>new Date(a.pgm)-new Date(b.pgm))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
-              {(recebFiltro==="todos"||recebFiltro==="pendentes") && <div><div style={{ fontWeight:700, color:C.sub, fontSize:14, marginBottom:10 }}>📋 Todos os Pendentes</div><Tabela rows={data.filter(p=>p.status!=="PAGO").sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
+              {(recebFiltro==="todos"||recebFiltro==="pendentes") && <div><div style={{ fontWeight:700, color:C.sub, fontSize:14, marginBottom:10 }}>📋 Todos os Pendentes</div><Tabela rows={data.filter(p=>situation(p)!=="Recebido").sort((a,b)=>new Date(a.pgm||"9999")-new Date(b.pgm||"9999"))} onEdit={setModal} cols={{ pgm:true, diasPgm:true, status:true }}/></div>}
             </div>
           )}
 
@@ -591,7 +595,8 @@ export default function App() {
               </div>
               <ProcessFilters data={data} filters={processFilters} setFilters={setProcessFilters} onClear={()=>{setProcessFilters({});setBusca("");setFiltroCliente("Todos");setFiltroStatus("Todos");}}/>
               <div className="process-filter-actions"><button disabled={!listaFilt.length} onClick={()=>{setReportIds(listaFilt.map(p=>p.id));setTab("reports");window.scrollTo(0,0);}}>Exportar processos filtrados</button></div>
-              <Tabela rows={listaFilt} onEdit={setModal} cols={{ prontidao:true, carg:true, bl:true, pgm:true, docs:true, status:true, colors:true }}/>
+              <ClientNames rows={data} client={supabase} onRefresh={()=>loadData(true)}/>
+              <CompactProcesses rows={listaFilt} onEdit={setModal}/>
               <div style={{ marginTop:10, fontSize:11, color:C.muted, textAlign:"right" }}>{listaFilt.length} de {data.length} · {resumo(listaFilt)}</div>
             </div>
           )}
