@@ -19,6 +19,11 @@ function docsIniciais(produto) {
   const base = { invoice:false, packing:false, co:false, ca:false, due:false, pallet: temPallet };
   return ehTerebintina(prod) ? { ...base, anexoVII:false, mdgf:false, dca:false } : base;
 }
+const normalizeNfs = (value) => {
+  const source = Array.isArray(value) ? value : String(value ?? "").split(/[,;\n\/]+/);
+  return [...new Set(source.map(v => String(v).trim()).filter(Boolean))];
+};
+const displayNfs = (value) => normalizeNfs(value).join(", ");
 const LABEL_DOC = { invoice:"Commercial Invoice", packing:"Packing List", co:"Cert. Origem", ca:"Cert. Análise", due:"DU-E", pallet:"Cert. Pallets", anexoVII:"Anexo VII", mdgf:"MDGF", dca:"DCA" };
 const TODAY = new Date();
 const daysDiff = (d) => { if(!d) return null; return Math.ceil((new Date(d+"T12:00:00")-TODAY)/86400000); };
@@ -127,7 +132,12 @@ function ProcessoModal({ proc, onClose, onSave, onDelete, loading }) {
   const isNew = !proc.id;
 
   useEffect(() => {
+    setF({ ...proc });
+  }, [proc.id]);
+
+  useEffect(() => {
     if(proc.id) loadArquivos();
+    else setArquivos([]);
   }, [proc.id]);
 
   const loadArquivos = async () => {
@@ -194,16 +204,18 @@ function ProcessoModal({ proc, onClose, onSave, onDelete, loading }) {
         <div style={{ padding:"20px 24px" }}>
           {subTab==="dados" && (
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
-              {[["empresa","Empresa","text"],["proforma","Proforma","text"],["cliente","Cliente","text","1/span 2"],["produto","Produto","text","1/span 2"],["destino","País Destino","text"],["incoterm","Incoterm","incoterm"],["qtd","Quantidade","number"],["valor","Valor invoice","number"],["moeda","Moeda (USD/EUR)","text"],["valor_recebido","Valor recebido","number"],["prazo","Prazo Pgto (dias)","number"],["termos","Termos Pgto","termos"],["prontidao","Previsão Prontidão","date"],["carg","Data Carregamento","date"],["bl","Data BL","date"],["pgm","Previsão Pagamento","date"]].map(([k,lb,type,gc])=>(
+              {[["empresa","Empresa","text"],["proforma","Proforma","text"],["mercado","Mercado","mercado"],["cliente","Cliente","text","1/span 2"],["produto","Produto","text","1/span 2"],["destino","País Destino","text"],["incoterm","Incoterm","incoterm"],["qtd","Quantidade","number"],["valor","Valor invoice","number"],["moeda","Moeda (USD/EUR/BRL)","text"],["valor_recebido","Valor recebido","number"],["notas_fiscais","Número(s) da NF","notas","1/span 2"],["prazo","Prazo Pgto (dias)","number"],["termos","Termos Pgto","termos"],["prontidao","Previsão Prontidão","date"],["carg","Data Carregamento","date"],["bl","Data BL","date"],["pgm","Previsão Pagamento","date"]].map(([k,lb,type,gc])=>(
                 <div key={k} style={{ gridColumn:gc }}>
                   <label style={lbl}>{lb}</label>
                   {type==="incoterm"?<select value={f[k]||"FOB"} onChange={e=>set(k,e.target.value)} style={inp}>{["FOB","CIF","CFR","EXW","DAP","DDP"].map(o=><option key={o}>{o}</option>)}</select>
                   :type==="termos"?<select value={f[k]||"DIAS DO BL"} onChange={e=>set(k,e.target.value)} style={inp}>{["DIAS DO BL","NO BL","DIAS DO PEDIDO","100% ANTECIPADO","50% ANTECIPADO","PARCELADO"].map(o=><option key={o}>{o}</option>)}</select>
+                  :type==="mercado"?<select value={f[k]||(f.id?marketOf(f):"")} onChange={e=>set(k,e.target.value)} style={inp}><option value="">Selecione o mercado</option><option value="MI">MI — Mercado Interno</option><option value="ME">ME — Mercado Externo</option></select>
+                  :type==="notas"?<><textarea rows={2} value={displayNfs(f[k])} onChange={e=>set(k,e.target.value)} placeholder="Informe o número da NF; se houver mais de uma, separe por vírgula ou barra" style={{...inp,resize:"vertical"}}/><small style={{display:"block",marginTop:4,color:C.muted}}>Números das planilhas de expedição podem ser conferidos e editados aqui.</small></>
                   :<input type={type} value={f[k]||""} onChange={e=>set(k,e.target.value)} style={inp}/>}
                 </div>
               ))}
               <div style={{ gridColumn:"1/span 2" }}>
-                <label style={lbl}>Mercado (automático)</label><div style={{marginBottom:12}}>{marketLabel(marketOf(f))}</div><label style={lbl}>Status Pagamento</label>
+                <label style={lbl}>Status Pagamento</label>
                 <select value={f.status} onChange={e=>set("status",e.target.value)} style={inp}>{STATUS_OPTIONS.map(s=><option key={s}>{s}</option>)}</select>
               </div>
               <div style={{ gridColumn:"1/span 2" }}>
@@ -260,7 +272,7 @@ function Td({ children, style }) { return <td style={{ padding:"10px 12px", bord
 
 function CompactProcesses({rows,onEdit,onDelete,deleting}) {
  const item=(label,value)=><div className="compact-field"><small>{label}</small><span>{value??"—"}</span></div>;
- return <div className="compact-list">{!rows.length&&<p>Nenhum processo encontrado.</p>}{rows.map(p=><article key={p.id||p.proforma} className="compact-process" style={{background:rowColors[situation(p)]}}><div className="compact-identity"><button className="plain-link" onClick={()=>onEdit(p)}>{p.proforma}</button><strong>{p.cliente}</strong><span>{p.produto}</span>{item("Empresa / mercado",[p.empresa,marketLabel(marketOf(p))].filter(Boolean).join(" · "))}{item("Destino / Incoterm",[p.destino,p.incoterm].filter(Boolean).join(" · ")||"—")}{item("Quantidade",p.qtd)}</div><div className="compact-finance">{item("Valor invoice",moedaFmt(p.valor,p.moeda))}{item("Recebido",p.valor_recebido==null?(situation(p)==="Recebido"?moedaFmt(p.valor,p.moeda):"Não informado"):moedaFmt(p.valor_recebido,p.moeda))}{item("Saldo a receber",moedaFmt(situation(p)==="Recebido"?0:saldo(p),p.moeda))}{item("Condições",[p.prazo!=null?p.prazo+" dias":"",p.termos].filter(Boolean).join(" · ")||"—")}</div><div className="compact-dates">{item("Prontidão",fmtDate(p.prontidao))}{item("Carregamento",fmtDate(p.carg))}{item("BL",fmtDate(p.bl))}{item("Vencimento",fmtDate(p.pgm))}</div><div className="compact-state"><strong>{situation(p)}</strong><span className="status-wrap">{p.status}</span>{item("Documentos",<DocChecklist docs={p.docs||{}} compact/>)}{item("Obs. pagamento",p.obs_prazo||"—")}{item("Observações",p.obs||"—")}<button className="compact-open" onClick={()=>onEdit(p)}>Abrir processo</button><button className="delete-process" disabled={deleting} onClick={()=>onDelete(p)}>Excluir processo</button></div></article>)}</div>;
+ return <div className="compact-list">{!rows.length&&<p>Nenhum processo encontrado.</p>}{rows.map(p=><article key={p.id||p.proforma} className="compact-process" style={{background:rowColors[situation(p)]}}><div className="compact-identity"><button className="plain-link" onClick={()=>onEdit(p)}>{p.proforma}</button><strong>{p.cliente}</strong><span>{p.produto}</span>{item("Empresa / mercado",[p.empresa,marketLabel(marketOf(p))].filter(Boolean).join(" · "))}{item("Nota(s) fiscal(is)",displayNfs(p.notas_fiscais)||"Não informada")}{item("Destino / Incoterm",[p.destino,p.incoterm].filter(Boolean).join(" · ")||"—")}{item("Quantidade",p.qtd)}</div><div className="compact-finance">{item("Valor invoice",moedaFmt(p.valor,p.moeda))}{item("Recebido",p.valor_recebido==null?(situation(p)==="Recebido"?moedaFmt(p.valor,p.moeda):"Não informado"):moedaFmt(p.valor_recebido,p.moeda))}{item("Saldo a receber",moedaFmt(situation(p)==="Recebido"?0:saldo(p),p.moeda))}{item("Condições",[p.prazo!=null?p.prazo+" dias":"",p.termos].filter(Boolean).join(" · ")||"—")}</div><div className="compact-dates">{item("Prontidão",fmtDate(p.prontidao))}{item("Carregamento",fmtDate(p.carg))}{item("BL",fmtDate(p.bl))}{item("Vencimento",fmtDate(p.pgm))}</div><div className="compact-state"><strong>{situation(p)}</strong><span className="status-wrap">{p.status}</span>{item("Documentos",<DocChecklist docs={p.docs||{}} compact/>)}{item("Obs. pagamento",p.obs_prazo||"—")}{item("Observações",p.obs||"—")}<button className="compact-open" onClick={()=>onEdit(p)}>Abrir processo</button><button className="delete-process" disabled={deleting} onClick={()=>onDelete(p)}>Excluir processo</button></div></article>)}</div>;
 }
 
 function Tabela({ rows, onEdit, cols={} }) {
@@ -406,7 +418,9 @@ export default function App() {
       const {id,created_at,...rest}=proc;
       if(proc.moeda && !["USD","EUR","BRL"].includes(proc.moeda)) throw new Error("Moeda deve ser USD, EUR ou BRL");
       if(proc.valor_recebido!=="" && proc.valor_recebido!=null && (Number(proc.valor_recebido)<0 || Number(proc.valor_recebido)>Number(proc.valor))) throw new Error("Valor recebido inválido");
-      const payload={...rest,mercado:marketOf(proc),...(rest.valor_recebido===""?{valor_recebido:null}:{}),docs:{...docsIniciais(proc.produto),...proc.docs}};
+      const mercadoSelecionado = String(proc.mercado || (proc.id ? marketOf(proc) : "")).toUpperCase();
+      if(!["MI","ME"].includes(mercadoSelecionado)) throw new Error("Selecione Mercado Interno (MI) ou Mercado Externo (ME).");
+      const payload={...rest,mercado:mercadoSelecionado,notas_fiscais:normalizeNfs(rest.notas_fiscais),...(rest.valor_recebido===""?{valor_recebido:null}:{}),docs:{...docsIniciais(proc.produto),...proc.docs}};
       const result=id ? await supabase.from("processos").update({...payload,updated_at:new Date().toISOString()}).eq("id",id).select().single() : await supabase.from("processos").insert(payload).select().single();
       if(result.error || !result.data) throw result.error || new Error("Gravação não confirmada");
       setData(d=>id?d.map(p=>p.id===id?result.data:p):[...d,result.data]);
@@ -449,7 +463,7 @@ export default function App() {
     return matches(p,processFilters)&&(filtroCliente==="Todos"||p.cliente===filtroCliente)&&(filtroStatus==="Todos"||p.status===filtroStatus)&&(!busca||p.proforma?.toLowerCase().includes(q)||p.cliente?.toLowerCase().includes(q)||p.produto?.toLowerCase().includes(q));
   }),[data,busca,filtroCliente,filtroStatus,processFilters]);
 
-  const emptyProc = { empresa:"RJ", proforma:"", cliente:"", produto:"", qtd:0, valor:0, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"", docs:{} };
+  const emptyProc = { empresa:"RJ", proforma:"", cliente:"", produto:"", qtd:0, valor:0, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", mercado:"", notas_fiscais:[], obs_prazo:"", obs:"", docs:{} };
 
   const TABS = [
     {id:"dashboard",label:"Painel Geral"},

@@ -8,3 +8,11 @@ Todos os Processos: filtros combináveis por campos, intervalos inclusivos de da
 V7: painel executivo com distribuição por situação, posição por moeda e próximos vencimentos; Todos os Processos usa blocos compactos responsivos com campos agrupados, sem tabela horizontal. Correção de nomes: na aba Todos os Processos, abra “Corrigir nomes de clientes da planilha”, cole as três colunas Empresa, Proforma, Cliente diretamente do Excel, confira a prévia e confirme. Somente nomes codificados reconhecidos (EX/MI/ME seguidos de dígitos, com ou sem prefixo Cliente) são alterados; duplicidades são ignoradas e nenhuma outra coluna é gravada. A planilha original não estava acessível para gerar uma correspondência completa. Não é necessário executar SQL. Faça backup antes da correção; as atualizações são individuais e podem ser parcialmente aplicadas se houver falha. 
 
 V8: Mercado calculado pela Proforma (contém RJ ou AR, sem distinguir maiúsculas/minúsculas = ME; demais = MI). Filtros rápidos e detalhados, relatórios e painel usam a mesma regra. Processos novos/editados gravam mercado calculado; registros antigos não são regravados em massa. Backups preservam valores originais do banco. Exclusão individual com confirmação e verificação de retorno do Supabase; depende da política DELETE/SELECT e de restrições de anexos existentes. Não modifica políticas, não exclui objetos do Storage. Faça backup antes de excluir.
+
+
+## Atualização v9 — Mercado e notas fiscais por processo
+- O campo Mercado agora é editável em cada processo: MI ou ME.
+- A seleção manual salva no campo `mercado` do Supabase e passa a prevalecer sobre a inferência pelo número da Proforma.
+- O filtro MI/ME e o painel passam a respeitar o mercado salvo.
+- O campo Número(s) da NF exibe e permite editar os números armazenados em `notas_fiscais` (JSONB), aceitando múltiplas NFs separadas por vírgula, ponto e vírgula, barra ou quebra de linha.
+- A lista compacta de processos também exibe as notas fiscais cadastradas.
