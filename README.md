@@ -1,4 +1,6 @@
-# Exportação RJ — versão 5
+# Exportação RJ — versão 6
 Publique os arquivos na raiz do repositório existente. Não execute novamente SQL de importação. Nenhuma migração é necessária para esta versão.
 Relatórios e Backup: filtros inclusivos por BL e vencimento (campo pgm), empresa, mercado, moeda, status e busca; seleção individual ou de todos os resultados; CSV com separador ponto e vírgula e impressão pelo navegador (salvar PDF). A seleção é limpa quando filtros mudam. Dados sem recebimento informado não são estimados.
 Backup CSV dos processos e JSON dos processos e metadados da tabela arquivos, consultados diretamente no Supabase com paginação. Não inclui conteúdo binário dos anexos, usuários, esquema ou políticas. Histórico apenas local ao navegador. Não há agendamento automático. Guarde cópias privadas; faça backup integral via CLI e Storage separadamente. Permissões RLS existentes são respeitadas. Não inclua dados ou SQL privados no GitHub.
+
+Todos os Processos: filtros combináveis por campos, intervalos inclusivos de datas e valores, situação financeira e documentos; linhas verdes (recebido), amarelo-alaranjadas (pendente) e vermelhas (atraso). Status PAGO ou recebimento integral tem prioridade; vencimento anterior ao dia atual em São Paulo ou status ATRASADO/INADIMPLENTE indica atraso se não recebido. A classificação visual não grava alterações no banco. Exportar processos filtrados abre Relatórios com esses registros pré-selecionados.

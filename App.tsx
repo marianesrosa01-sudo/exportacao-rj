@@ -1,3 +1,4 @@
+import ProcessFilters, {matches, situation, rowColors} from "./ProcessFilters";
 import Reports, {fetchAll} from "./Reports";
 import brandLogo from "./logo-resinas-jardim.png";
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -262,31 +263,31 @@ function Tabela({ rows, onEdit, cols={} }) {
         <thead><tr>
           <Th ch="Proforma"/><Th ch="Empresa"/><Th ch="Cliente"/><Th ch="Produto"/>
           {cols.prontidao&&<Th ch="Prontidão"/>}
-          <Th ch="Valor invoice" right/>{cols.pgm&&<Th ch="Saldo a receber" right/>}
+          <Th ch="Valor invoice" right/>{cols.colors&&<><Th ch="Moeda"/><Th ch="Valor recebido" right/></>}{cols.pgm&&<Th ch="Saldo a receber" right/>}
           {cols.carg&&<Th ch="Carregamento"/>}
           {cols.bl&&<Th ch="BL"/>}
           {cols.pgm&&<Th ch="Pgto Prev."/>}
           {cols.diasPgm&&<Th ch="Vence"/>}
           {cols.docs&&<Th ch="Docs"/>}
-          {cols.status&&<Th ch="Status"/>}
+          {cols.status&&<Th ch="Status"/>}{cols.colors&&<Th ch="Situação financeira"/>}
           <Th ch=""/>
         </tr></thead>
         <tbody>
           {rows.map((p,i)=>(
-            <tr key={p.id||p.proforma} style={{ background:i%2===0?C.white:"#fafafa", cursor:"pointer" }} onClick={()=>onEdit(p)}>
+            <tr className={cols.colors?"process-colored-row":undefined} key={p.id||p.proforma} style={{ background:cols.colors?rowColors[situation(p)]:i%2===0?C.white:"#fafafa", cursor:"pointer" }} onClick={()=>onEdit(p)}>
               <Td><span style={{ color:C.blue, fontWeight:700, fontSize:12 }}>{p.proforma}</span></Td>
               <Td><Pill>{p.empresa}</Pill></Td>
               <Td style={{ fontWeight:600 }}>{p.cliente}</Td>
               <Td style={{ color:C.sub, maxWidth:160 }}><span style={{ display:"block", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:160 }}>{p.produto}</span></Td>
               {cols.prontidao&&<Td>{p.prontidao?fmtDate(p.prontidao):<Pill color="amber">Indefinida</Pill>}</Td>}
               <Td style={{ textAlign:"right", fontWeight:700, color:C.green }}>{moedaFmt(p.valor,p.moeda)}</Td>
-              {cols.pgm&&<Td>{moedaFmt(saldo(p),p.moeda)}</Td>}
+              {cols.colors&&<><Td>{p.moeda||"USD"}</Td><Td style={{textAlign:"right"}}>{p.valor_recebido==null?"—":moedaFmt(p.valor_recebido,p.moeda)}</Td></>}{cols.pgm&&<Td>{moedaFmt(cols.colors&&situation(p)==="Recebido"?0:saldo(p),p.moeda)}</Td>}
               {cols.carg&&<Td>{p.carg?fmtDate(p.carg):<Pill color="red">Sem reserva</Pill>}</Td>}
               {cols.bl&&<Td style={{ color:C.sub }}>{fmtDate(p.bl)}</Td>}
               {cols.pgm&&<Td style={{ color:C.sub }}>{fmtDate(p.pgm)}</Td>}
               {cols.diasPgm&&<Td><DaysBadge days={daysDiff(p.pgm)}/></Td>}
               {cols.docs&&<Td style={{ minWidth:100 }}><DocChecklist docs={p.docs||{}} compact/></Td>}
-              {cols.status&&<Td><Badge status={p.status}/></Td>}
+              {cols.status&&<Td><Badge status={p.status}/></Td>}{cols.colors&&<Td style={{fontWeight:700}}>{situation(p)}</Td>}
               <Td><button onClick={e=>{e.stopPropagation();onEdit(p)}} style={{ background:"#f5f0e4", color:C.blue, border:"1px solid #dfcfaa", borderRadius:5, padding:"4px 10px", fontSize:11, fontWeight:600, cursor:"pointer" }}>Abrir</button></Td>
             </tr>
           ))}
@@ -351,13 +352,15 @@ export default function App() {
   const [tab, setTab] = useState("dashboard");
   const [modal, setModal] = useState(null);
   const [busca, setBusca] = useState("");
+  const [processFilters,setProcessFilters]=useState({});
+  const [reportIds,setReportIds]=useState(null);
   const [filtroCliente, setFiltroCliente] = useState("Todos");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [cloudError, setCloudError] = useState("");
   const [synced, setSynced] = useState(null);
   const [recebFiltro, setRecebFiltro] = useState("todos");
   const navigate = (page, filter="todos", client="Todos") => {
-    setBusca(""); setFiltroCliente(client); setFiltroStatus("Todos");
+    setReportIds(null); setProcessFilters({}); setBusca(""); setFiltroCliente(client); setFiltroStatus("Todos");
     setRecebFiltro(filter); setTab(page); window.scrollTo(0,0);
   };
 
@@ -419,8 +422,8 @@ export default function App() {
   const clientes  = useMemo(()=>["Todos",...Array.from(new Set(data.map(p=>p.cliente))).sort()],[data]);
   const listaFilt = useMemo(()=>data.filter(p=>{
     const q=busca.toLowerCase();
-    return (filtroCliente==="Todos"||p.cliente===filtroCliente)&&(filtroStatus==="Todos"||p.status===filtroStatus)&&(!busca||p.proforma?.toLowerCase().includes(q)||p.cliente?.toLowerCase().includes(q)||p.produto?.toLowerCase().includes(q));
-  }),[data,busca,filtroCliente,filtroStatus]);
+    return matches(p,processFilters)&&(filtroCliente==="Todos"||p.cliente===filtroCliente)&&(filtroStatus==="Todos"||p.status===filtroStatus)&&(!busca||p.proforma?.toLowerCase().includes(q)||p.cliente?.toLowerCase().includes(q)||p.produto?.toLowerCase().includes(q));
+  }),[data,busca,filtroCliente,filtroStatus,processFilters]);
 
   const emptyProc = { empresa:"RJ", proforma:"", cliente:"", produto:"", qtd:0, valor:0, carg:null, bl:null, prazo:45, termos:"DIAS DO BL", pgm:null, status:"PENDENTE", prontidao:null, incoterm:"FOB", destino:"", obs_prazo:"", obs:"", docs:{} };
 
@@ -576,7 +579,7 @@ export default function App() {
             </div>
           )}
 
-          {tab==="reports" && <Reports key={session.user.id} client={supabase} rows={data} cloudError={cloudError}/>}
+          {tab==="reports" && <Reports key={session.user.id} client={supabase} rows={data} cloudError={cloudError} initialIds={reportIds}/>}
           {/* TODOS */}
           {tab==="todos" && (
             <div>
@@ -586,7 +589,9 @@ export default function App() {
                 <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)} style={{ border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 12px", fontSize:13, fontFamily:"inherit", background:C.white }}>{clientes.map(c=><option key={c}>{c}</option>)}</select>
                 <select value={filtroStatus} onChange={e=>setFiltroStatus(e.target.value)} style={{ border:`1px solid ${C.border}`, borderRadius:7, padding:"7px 12px", fontSize:13, fontFamily:"inherit", background:C.white }}><option value="Todos">Todos os status</option>{STATUS_OPTIONS.map(s=><option key={s}>{s}</option>)}</select>
               </div>
-              <Tabela rows={listaFilt} onEdit={setModal} cols={{ prontidao:true, carg:true, bl:true, pgm:true, docs:true, status:true }}/>
+              <ProcessFilters data={data} filters={processFilters} setFilters={setProcessFilters} onClear={()=>{setProcessFilters({});setBusca("");setFiltroCliente("Todos");setFiltroStatus("Todos");}}/>
+              <div className="process-filter-actions"><button disabled={!listaFilt.length} onClick={()=>{setReportIds(listaFilt.map(p=>p.id));setTab("reports");window.scrollTo(0,0);}}>Exportar processos filtrados</button></div>
+              <Tabela rows={listaFilt} onEdit={setModal} cols={{ prontidao:true, carg:true, bl:true, pgm:true, docs:true, status:true, colors:true }}/>
               <div style={{ marginTop:10, fontSize:11, color:C.muted, textAlign:"right" }}>{listaFilt.length} de {data.length} · {resumo(listaFilt)}</div>
             </div>
           )}

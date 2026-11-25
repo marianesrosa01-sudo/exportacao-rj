@@ -18,9 +18,9 @@ const money=(v,m)=>v==null?'Não informado':`${m||'—'} ${Number(v).toLocaleStr
 const date=v=>v?String(v).slice(0,10).split('-').reverse().join('/'):'—';
 const balance=p=>p.valor_recebido==null?null:Number(p.valor)-Number(p.valor_recebido);
 const esc=v=>String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
-export default function Reports({client,rows,cloudError}){
+export default function Reports({client,rows,cloudError,initialIds}){
  const [filters,F]=useState({q:'',empresa:'',mercado:'',status:'',moeda:'',blDe:'',blAte:'',pgmDe:'',pgmAte:''});
- const [selected,S]=useState(new Set()); const [busy,B]=useState(false);const [message,M]=useState('');
+ const [selected,S]=useState(()=>new Set(initialIds||[])); const [busy,B]=useState(false);const [message,M]=useState('');
  const [history,H]=useState(()=>{try{return JSON.parse(localStorage.getItem('rj-export-history')||'[]')}catch{return []}});
  const remember=(kind,count)=>{const next=[{kind,count,date:new Date().toISOString()},...history].slice(0,20);H(next);try{localStorage.setItem('rj-export-history',JSON.stringify(next))}catch{}};
  const set=(k,v)=>{F(f=>({...f,[k]:v}));S(new Set());};
