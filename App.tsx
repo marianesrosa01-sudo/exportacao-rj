@@ -1,3 +1,4 @@
+import {marketOf, marketLabel} from "./market";
 import Overview from "./Overview";
 import ClientNames from "./ClientNames";
 import ProcessFilters, {matches, situation, rowColors} from "./ProcessFilters";
@@ -117,7 +118,7 @@ function DocChecklist({ docs, onChange, compact }) {
 }
 
 // ─── MODAL PROCESSO ───────────────────────────────────────────────
-function ProcessoModal({ proc, onClose, onSave, loading }) {
+function ProcessoModal({ proc, onClose, onSave, onDelete, loading }) {
   const [f, setF] = useState({ ...proc });
   const [subTab, setSubTab] = useState("dados");
   const [uploading, setUploading] = useState(false);
@@ -202,7 +203,7 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
                 </div>
               ))}
               <div style={{ gridColumn:"1/span 2" }}>
-                <label style={lbl}>Status Pagamento</label>
+                <label style={lbl}>Mercado (automático)</label><div style={{marginBottom:12}}>{marketLabel(marketOf(f))}</div><label style={lbl}>Status Pagamento</label>
                 <select value={f.status} onChange={e=>set("status",e.target.value)} style={inp}>{STATUS_OPTIONS.map(s=><option key={s}>{s}</option>)}</select>
               </div>
               <div style={{ gridColumn:"1/span 2" }}>
@@ -245,7 +246,7 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
           )}
         </div>
         <div style={{ padding:"16px 24px", borderTop:`1px solid ${C.border}`, display:"flex", gap:8, justifyContent:"flex-end" }}>
-          <button onClick={onClose} style={{ background:C.bg, color:C.sub, border:`1px solid ${C.border}`, borderRadius:7, padding:"8px 18px", fontWeight:600, fontSize:13, cursor:"pointer" }}>Cancelar</button>
+          {!isNew&&<button className="delete-process" disabled={loading||uploading} onClick={()=>onDelete(proc)} style={{marginRight:"auto"}}>Excluir processo</button>}<button disabled={loading} onClick={onClose} style={{ background:C.bg, color:C.sub, border:`1px solid ${C.border}`, borderRadius:7, padding:"8px 18px", fontWeight:600, fontSize:13, cursor:"pointer" }}>Cancelar</button>
           <button onClick={()=>onSave(f)} disabled={loading} style={{ background:C.blue, color:"#fff", border:"none", borderRadius:7, padding:"8px 20px", fontWeight:700, fontSize:13, cursor:"pointer" }}>{loading?"Salvando...":"Salvar"}</button>
         </div>
       </div>
@@ -257,9 +258,9 @@ function ProcessoModal({ proc, onClose, onSave, loading }) {
 function Th({ ch, right }) { return <th style={{ padding:"9px 12px", fontSize:11, fontWeight:700, color:C.sub, textTransform:"uppercase", letterSpacing:.5, textAlign:right?"right":"left", borderBottom:`1px solid ${C.border}`, background:"#f5f5ef", whiteSpace:"nowrap" }}>{ch}</th>; }
 function Td({ children, style }) { return <td style={{ padding:"10px 12px", borderBottom:"1px solid #eff0e9", verticalAlign:"middle", fontSize:13, ...style }}>{children}</td>; }
 
-function CompactProcesses({rows,onEdit}) {
+function CompactProcesses({rows,onEdit,onDelete,deleting}) {
  const item=(label,value)=><div className="compact-field"><small>{label}</small><span>{value??"—"}</span></div>;
- return <div className="compact-list">{!rows.length&&<p>Nenhum processo encontrado.</p>}{rows.map(p=><article key={p.id||p.proforma} className="compact-process" style={{background:rowColors[situation(p)]}}><div className="compact-identity"><button className="plain-link" onClick={()=>onEdit(p)}>{p.proforma}</button><strong>{p.cliente}</strong><span>{p.produto}</span>{item("Empresa / mercado",[p.empresa,p.mercado].filter(Boolean).join(" · "))}{item("Destino / Incoterm",[p.destino,p.incoterm].filter(Boolean).join(" · ")||"—")}{item("Quantidade",p.qtd)}</div><div className="compact-finance">{item("Valor invoice",moedaFmt(p.valor,p.moeda))}{item("Recebido",p.valor_recebido==null?(situation(p)==="Recebido"?moedaFmt(p.valor,p.moeda):"Não informado"):moedaFmt(p.valor_recebido,p.moeda))}{item("Saldo a receber",moedaFmt(situation(p)==="Recebido"?0:saldo(p),p.moeda))}{item("Condições",[p.prazo!=null?p.prazo+" dias":"",p.termos].filter(Boolean).join(" · ")||"—")}</div><div className="compact-dates">{item("Prontidão",fmtDate(p.prontidao))}{item("Carregamento",fmtDate(p.carg))}{item("BL",fmtDate(p.bl))}{item("Vencimento",fmtDate(p.pgm))}</div><div className="compact-state"><strong>{situation(p)}</strong><span className="status-wrap">{p.status}</span>{item("Documentos",<DocChecklist docs={p.docs||{}} compact/>)}{item("Obs. pagamento",p.obs_prazo||"—")}{item("Observações",p.obs||"—")}<button className="compact-open" onClick={()=>onEdit(p)}>Abrir processo</button></div></article>)}</div>;
+ return <div className="compact-list">{!rows.length&&<p>Nenhum processo encontrado.</p>}{rows.map(p=><article key={p.id||p.proforma} className="compact-process" style={{background:rowColors[situation(p)]}}><div className="compact-identity"><button className="plain-link" onClick={()=>onEdit(p)}>{p.proforma}</button><strong>{p.cliente}</strong><span>{p.produto}</span>{item("Empresa / mercado",[p.empresa,marketLabel(marketOf(p))].filter(Boolean).join(" · "))}{item("Destino / Incoterm",[p.destino,p.incoterm].filter(Boolean).join(" · ")||"—")}{item("Quantidade",p.qtd)}</div><div className="compact-finance">{item("Valor invoice",moedaFmt(p.valor,p.moeda))}{item("Recebido",p.valor_recebido==null?(situation(p)==="Recebido"?moedaFmt(p.valor,p.moeda):"Não informado"):moedaFmt(p.valor_recebido,p.moeda))}{item("Saldo a receber",moedaFmt(situation(p)==="Recebido"?0:saldo(p),p.moeda))}{item("Condições",[p.prazo!=null?p.prazo+" dias":"",p.termos].filter(Boolean).join(" · ")||"—")}</div><div className="compact-dates">{item("Prontidão",fmtDate(p.prontidao))}{item("Carregamento",fmtDate(p.carg))}{item("BL",fmtDate(p.bl))}{item("Vencimento",fmtDate(p.pgm))}</div><div className="compact-state"><strong>{situation(p)}</strong><span className="status-wrap">{p.status}</span>{item("Documentos",<DocChecklist docs={p.docs||{}} compact/>)}{item("Obs. pagamento",p.obs_prazo||"—")}{item("Observações",p.obs||"—")}<button className="compact-open" onClick={()=>onEdit(p)}>Abrir processo</button><button className="delete-process" disabled={deleting} onClick={()=>onDelete(p)}>Excluir processo</button></div></article>)}</div>;
 }
 
 function Tabela({ rows, onEdit, cols={} }) {
@@ -405,13 +406,29 @@ export default function App() {
       const {id,created_at,...rest}=proc;
       if(proc.moeda && !["USD","EUR","BRL"].includes(proc.moeda)) throw new Error("Moeda deve ser USD, EUR ou BRL");
       if(proc.valor_recebido!=="" && proc.valor_recebido!=null && (Number(proc.valor_recebido)<0 || Number(proc.valor_recebido)>Number(proc.valor))) throw new Error("Valor recebido inválido");
-      const payload={...rest,...(rest.valor_recebido===""?{valor_recebido:null}:{}),docs:{...docsIniciais(proc.produto),...proc.docs}};
+      const payload={...rest,mercado:marketOf(proc),...(rest.valor_recebido===""?{valor_recebido:null}:{}),docs:{...docsIniciais(proc.produto),...proc.docs}};
       const result=id ? await supabase.from("processos").update({...payload,updated_at:new Date().toISOString()}).eq("id",id).select().single() : await supabase.from("processos").insert(payload).select().single();
       if(result.error || !result.data) throw result.error || new Error("Gravação não confirmada");
       setData(d=>id?d.map(p=>p.id===id?result.data:p):[...d,result.data]);
       setSynced(new Date()); setCloudError(""); setModal(null);
       await loadData(true);
     } catch(e) { setCloudError("Falha ao salvar: "+e.message); alert("Dados não salvos. O formulário foi mantido. "+e.message); }
+    finally { setSaving(false); }
+  };
+
+  const deleteProcesso = async (proc) => {
+    if(!proc.id || saving) return;
+    if(!window.confirm(`Excluir definitivamente o processo ${proc.proforma} — ${proc.cliente}? Esta ação não pode ser desfeita. Anexos vinculados podem impedir a exclusão. Faça backup antes de prosseguir.`)) return;
+    setSaving(true);
+    try {
+      const {data:removed,error}=await supabase.from("processos").delete().eq("id",proc.id).select("id");
+      if(error) throw error;
+      if(!removed?.some(r=>r.id===proc.id)) throw new Error("Exclusão não confirmada. Verifique as permissões no Supabase.");
+      setData(old=>old.filter(p=>p.id!==proc.id));
+      setModal(old=>old?.id===proc.id?null:old);
+      setCloudError(""); setSynced(new Date());
+      await loadData(true);
+    } catch(e) { setCloudError("Falha ao excluir: "+e.message); alert("Não foi possível confirmar a exclusão: "+e.message); }
     finally { setSaving(false); }
   };
 
@@ -483,7 +500,7 @@ export default function App() {
           {/* DASHBOARD */}
           {tab==="dashboard" && (
             <div>
-              <Overview rows={data} onEdit={setModal} onStatus={status=>{navigate("todos");setProcessFilters({situacao:status});}}/>
+              <Overview rows={data} onEdit={setModal} onStatus={status=>{navigate("todos");setProcessFilters({situacao:status});}} onMarket={mercado=>{navigate("todos");setProcessFilters({mercado});}}/>
               <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:14, marginBottom:22 }}>
                 <KpiCard icon="📦" label="Total Processos" onClick={()=>navigate("todos","todos")} value={data.length} sub={`${data.filter(p=>situation(p)==="Recebido").length} pagos`}/>
                 <KpiCard icon="💵" label="Volume Total" onClick={()=>navigate("todos","todos")} value={resumo(data)} sub="todos os processos"/>
@@ -596,14 +613,14 @@ export default function App() {
               <ProcessFilters data={data} filters={processFilters} setFilters={setProcessFilters} onClear={()=>{setProcessFilters({});setBusca("");setFiltroCliente("Todos");setFiltroStatus("Todos");}}/>
               <div className="process-filter-actions"><button disabled={!listaFilt.length} onClick={()=>{setReportIds(listaFilt.map(p=>p.id));setTab("reports");window.scrollTo(0,0);}}>Exportar processos filtrados</button></div>
               <ClientNames rows={data} client={supabase} onRefresh={()=>loadData(true)}/>
-              <CompactProcesses rows={listaFilt} onEdit={setModal}/>
+              <CompactProcesses rows={listaFilt} onEdit={setModal} onDelete={deleteProcesso} deleting={saving}/>
               <div style={{ marginTop:10, fontSize:11, color:C.muted, textAlign:"right" }}>{listaFilt.length} de {data.length} · {resumo(listaFilt)}</div>
             </div>
           )}
         </main>
       )}
 
-      {modal && <ProcessoModal proc={modal} onClose={()=>setModal(null)} onSave={saveProcesso} loading={saving}/>}
+      {modal && <ProcessoModal proc={modal} onClose={()=>setModal(null)} onSave={saveProcesso} onDelete={deleteProcesso} loading={saving}/>}
     </div>
   );
 }
